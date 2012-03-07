@@ -58,7 +58,11 @@ namespace Shelisp {
 
 		public override string ToString ()
 		{
-			return string.Format ("#subr<" + name + ",{0}.{1}()>", method.DeclaringType.FullName, method.Name);
+#if VERBOSE_SUBR_FORMAT
+			return string.Format ("#subr<{0},{1}.{2}()>", name, method.DeclaringType.FullName, method.Name);
+#else
+			return string.Format ("#subr<{0}>", name);
+#endif
 		}
 
 		[LispBuiltin ("subrp", MinArgs = 1)]
