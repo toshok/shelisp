@@ -1,5 +1,5 @@
 namespace Lisp {
-	class Number : Object {
+	public class Number : Object {
 		public Number (object boxed)
 		{
 			this.boxed = boxed;

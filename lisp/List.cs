@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace Lisp {
-	class List : Sequence {
+	public class List : Sequence {
 		public List (Object car, Object cdr)
 		{
 			this.car = car;

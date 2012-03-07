@@ -3,7 +3,7 @@ using System.Reflection;
 using SysArray = System.Array;
 
 namespace Lisp {
-	class Subr : Object {
+	public class Subr : Object {
 		public Subr (string name, string doc, int min_args, bool unevalled, MethodInfo method, object target = null)
 		{
 			this.name = name;

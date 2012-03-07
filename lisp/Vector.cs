@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace Lisp {
-	class Vector : Array {
+	public class Vector : Array {
 		public Vector (Lisp.Object[] data)
 		{
 			this.data = data;

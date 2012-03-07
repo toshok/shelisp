@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 
 namespace Lisp {
-	class Debug {
+	public class Debug {
 		[Conditional("DEBUG")]
 		public static void Print (object o)
 		{

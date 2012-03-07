@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace Lisp {
-	class String : Array {
+	public class String : Array {
 		public String (string s)
 		{
 			this.native_string = new StringBuilder(s);

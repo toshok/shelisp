@@ -1,5 +1,5 @@
 namespace Lisp {
-	class Symbol : Object {
+	public class Symbol : Object {
 		public Symbol (string name)
 		{
 			this.name = name;

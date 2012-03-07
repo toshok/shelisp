@@ -1,8 +1,5 @@
-#EXTRAFLAGS=-define:DEBUG
+TOP=.
 
-SOURCES = Main.cs $(wildcard lisp/*.cs)
-test.exe: $(SOURCES)
-	gmcs -debug $(EXTRAFLAGS) -out:$@ $(SOURCES)
+SUBDIRS=lisp repl test
 
-clean:
-	rm *.exe *.mdb
+include $(TOP)/build/build.mk

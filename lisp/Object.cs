@@ -1,5 +1,5 @@
 namespace Lisp {
-	class Object {
+	public class Object {
 		public Object ()
 		{
 		}

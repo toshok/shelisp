@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 namespace Lisp {
-	static class Control {
+	public static class Control {
 
 		[LispBuiltin ("progn", MinArgs = 0, Unevalled = true)]
 		public static Lisp.Object Fprogn(L l, params Lisp.Object[] forms)

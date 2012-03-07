@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 namespace Lisp {
-	abstract class Array : Sequence {
+	public abstract class Array : Sequence {
 		public abstract Lisp.Object this[int index] { get; set; }
 
 		[LispBuiltin ("arrayp", MinArgs = 1)]

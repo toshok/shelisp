@@ -1,5 +1,5 @@
 namespace Lisp {
-	class Quote : Object {
+	public class Quote : Object {
 		public Quote (Object obj)
 		{
 			this.obj = obj;

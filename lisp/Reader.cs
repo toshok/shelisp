@@ -5,7 +5,7 @@ using System.IO;
 using System.Text;
 
 namespace Lisp {
-	static class Reader {
+	public static class Reader {
 		public static Lisp.Object Read (string s)
 		{
 			return Read (new StringReader (s));

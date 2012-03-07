@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace Lisp {
 
-	class L {
+	public class L {
 		static L ()
 		{
 			root_environment = Qnil;

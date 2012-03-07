@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 namespace Lisp {
-	abstract class Sequence : Object, IEnumerable<Lisp.Object> {
+	public abstract class Sequence : Object, IEnumerable<Lisp.Object> {
 		public abstract int Length { get; }
 		public abstract IEnumerator<Lisp.Object> GetEnumerator ();
 		IEnumerator IEnumerable.GetEnumerator ()

@@ -2,7 +2,7 @@ using System;
 
 namespace Lisp {
 
-	class LispBuiltinAttribute : Attribute {
+	public class LispBuiltinAttribute : Attribute {
 		public LispBuiltinAttribute (string name)
 		{
 			Name = name;

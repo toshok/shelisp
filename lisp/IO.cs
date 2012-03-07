@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 namespace Lisp {
-	class IO : Object {
+	public class IO : Object {
 		[LispBuiltin ("print-format", MinArgs = 1)]
 		public static Lisp.Object Fprint_format(L l, Lisp.Object format, params Lisp.Object[] args)
 		{
