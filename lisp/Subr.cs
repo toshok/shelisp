@@ -2,7 +2,7 @@ using System;
 using System.Reflection;
 using SysArray = System.Array;
 
-namespace Lisp {
+namespace Shelisp {
 	public class Subr : Object {
 		public Subr (string name, string doc, int min_args, bool unevalled, MethodInfo method, object target = null)
 		{
@@ -62,7 +62,7 @@ namespace Lisp {
 		}
 
 		[LispBuiltin ("subrp", MinArgs = 1)]
-		public static Lisp.Object Fsubrp(L l, Lisp.Object subr)
+		public static Shelisp.Object Fsubrp(L l, Shelisp.Object subr)
 		{
 			return (subr is Subr) ? L.Qt : L.Qnil;
 		}

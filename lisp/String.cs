@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Lisp {
+namespace Shelisp {
 	public class String : Array {
 		public String (string s)
 		{
@@ -15,13 +15,13 @@ namespace Lisp {
 			get { return native_string.Length; }
 		}
 
-		public override Lisp.Object this[int index]
+		public override Shelisp.Object this[int index]
 		{
 			get { return native_string[index]; }
 			set { /* XXX type check */ native_string[index] = (char)(int)(Number)value; }
 		}
 
-		public override IEnumerator<Lisp.Object> GetEnumerator ()
+		public override IEnumerator<Shelisp.Object> GetEnumerator ()
 		{
 			for (int i = 0; i < native_string.Length; i ++)
 				yield return native_string[i];

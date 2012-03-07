@@ -1,24 +1,24 @@
-namespace Lisp {
+namespace Shelisp {
 	public class Number : Object {
 		public Number (object boxed)
 		{
 			this.boxed = boxed;
 		}
 
-		public override bool LispEq (Lisp.Object other)
+		public override bool LispEq (Shelisp.Object other)
 		{
 			if (!(other is Number))
 				return false;
 			// lisp numbers are eq if their values are equal
-			return ((Lisp.Number)other).boxed == boxed;
+			return ((Shelisp.Number)other).boxed == boxed;
 		}
 
-		public override bool LispEqual (Lisp.Object other)
+		public override bool LispEqual (Shelisp.Object other)
 		{
 			if (!(other is Number))
 				return false;
 			// lisp numbers are equal if their values are equal
-			return ((Lisp.Number)other).boxed == boxed;
+			return ((Shelisp.Number)other).boxed == boxed;
 		}
 
 		public object boxed;

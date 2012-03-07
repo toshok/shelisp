@@ -41,8 +41,8 @@ endif
 # special handling if you define either PROGRAM+PROGRAM_SOURCES or LIBRARY+LIBRARY_SOURCES
 
 ifneq ($(PROGRAM),)
-$(PROGRAM): $(PROGRAM_SOURCES)
-	$(GMCS) -debug $(EXTRA_FLAGS) -out:$@ $(PROGRAM_SOURCES) $(REFERENCES) 
+$(PROGRAM): $(PROGRAM_SOURCES) $(REFERENCES)
+	$(GMCS) -debug $(EXTRA_FLAGS) -out:$@ $(PROGRAM_SOURCES) $(REFERENCES:%=-r:%)
 
 all-local:: $(PROGRAM)
 
@@ -51,8 +51,8 @@ clean-local::
 endif
 
 ifneq ($(LIBRARY),)
-$(LIBRARY): $(LIBRARY_SOURCES)
-	$(GMCS) -debug $(EXTRA_FLAGS) -out:$@ -target:library $(LIBRARY_SOURCES) $(REFERENCES) 
+$(LIBRARY): $(LIBRARY_SOURCES) $(REFERENCES)
+	$(GMCS) -debug $(EXTRA_FLAGS) -out:$@ -target:library $(LIBRARY_SOURCES) $(REFERENCES:%=-r%)
 
 all-local:: $(LIBRARY)
 

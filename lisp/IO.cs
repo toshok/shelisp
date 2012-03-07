@@ -2,16 +2,16 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Lisp {
+namespace Shelisp {
 	public class IO : Object {
 		[LispBuiltin ("print-format", MinArgs = 1)]
-		public static Lisp.Object Fprint_format(L l, Lisp.Object format, params Lisp.Object[] args)
+		public static Shelisp.Object Fprint_format(L l, Shelisp.Object format, params Shelisp.Object[] args)
 		{
 			switch (args.Length) {
-			case 0: Console.WriteLine ((Lisp.String)format); break;
-			case 1: Console.WriteLine ((Lisp.String)format, args[0]); break;
-			case 2: Console.WriteLine ((Lisp.String)format, args[0], args[1]); break;
-			case 3: Console.WriteLine ((Lisp.String)format, args[0], args[1], args[2]); break;
+			case 0: Console.WriteLine ((Shelisp.String)format); break;
+			case 1: Console.WriteLine ((Shelisp.String)format, args[0]); break;
+			case 2: Console.WriteLine ((Shelisp.String)format, args[0], args[1]); break;
+			case 3: Console.WriteLine ((Shelisp.String)format, args[0], args[1], args[2]); break;
 			case 4: Console.WriteLine ((String)format, args[0], args[1], args[2], args[3]); break;
 			case 5: Console.WriteLine ((String)format, args[0], args[1], args[2], args[3], args[4]); break;
 			case 6: Console.WriteLine ((String)format, args[0], args[1], args[2], args[3], args[4], args[5]); break;
@@ -27,7 +27,7 @@ namespace Lisp {
 		}
 
 		[LispBuiltin ("print", MinArgs = 1)]
-		public static Lisp.Object Fprint(L l, Lisp.Object obj)
+		public static Shelisp.Object Fprint(L l, Shelisp.Object obj)
 		{
 			Console.WriteLine (obj.ToString());
 			return obj;

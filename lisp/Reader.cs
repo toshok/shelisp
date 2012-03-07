@@ -4,14 +4,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace Lisp {
+namespace Shelisp {
 	public static class Reader {
-		public static Lisp.Object Read (string s)
+		public static Shelisp.Object Read (string s)
 		{
 			return Read (new StringReader (s));
 		}
 
-		public static Lisp.Object Read (TextReader s, char valid_end = (char)0)
+		public static Shelisp.Object Read (TextReader s, char valid_end = (char)0)
 		{
 			start:
 			char ch;
@@ -59,7 +59,7 @@ namespace Lisp {
 			return (Char.IsLetter (ch) || Char.IsDigit(ch) || ch == '_' || ch == '-' || ch == '?');
 		}
 
-		private static Lisp.String ReadString (TextReader s)
+		private static Shelisp.String ReadString (TextReader s)
 		{
 			StringBuilder sb = new StringBuilder ();
 
@@ -74,14 +74,14 @@ namespace Lisp {
 			return new String (sb.ToString());
 		}
 
-		private static Lisp.List ReadList (TextReader s)
+		private static Shelisp.List ReadList (TextReader s)
 		{
 			Debug.Print ("ReadList>");
 			// consume the (
 			s.Read();
 
-			List<Lisp.Object> objs = new List<Lisp.Object>();
-			Lisp.Object obj;
+			List<Shelisp.Object> objs = new List<Shelisp.Object>();
+			Shelisp.Object obj;
 			while ((obj = Read (s, ')')) != null) {
 				Debug.Print ("+ {0}", obj);
 				objs.Add (obj);
@@ -92,14 +92,14 @@ namespace Lisp {
 			return rv;
 		}
 
-		private static Lisp.Vector ReadVector (TextReader s)
+		private static Shelisp.Vector ReadVector (TextReader s)
 		{
 			Debug.Print ("ReadVector>");
 			// consume the (
 			s.Read();
 
-			List<Lisp.Object> objs = new List<Lisp.Object>();
-			Lisp.Object obj;
+			List<Shelisp.Object> objs = new List<Shelisp.Object>();
+			Shelisp.Object obj;
 			while ((obj = Read (s, ']')) != null) {
 				Debug.Print ("+ {0}", obj);
 				objs.Add (obj);
@@ -110,7 +110,7 @@ namespace Lisp {
 			return rv;
 		}
 
-		private static Lisp.Number ReadNumber (TextReader s)
+		private static Shelisp.Number ReadNumber (TextReader s)
 		{
 			StringBuilder sb = new StringBuilder ();
 
@@ -124,7 +124,7 @@ namespace Lisp {
 			return new Number (Int32.Parse (sb.ToString()));
 		}
 
-		private static Lisp.Symbol ReadSymbol (TextReader s)
+		private static Shelisp.Symbol ReadSymbol (TextReader s)
 		{
 			StringBuilder sb = new StringBuilder ();
 			bool valid = true;

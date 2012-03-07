@@ -2,26 +2,26 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Lisp {
+namespace Shelisp {
 	public class Vector : Array {
-		public Vector (Lisp.Object[] data)
+		public Vector (Shelisp.Object[] data)
 		{
 			this.data = data;
 		}
 
-		Lisp.Object[] data;
+		Shelisp.Object[] data;
 
 		public override int Length {
 			get { return data.Length; }
 		}
 
-		public override Lisp.Object this[int index]
+		public override Shelisp.Object this[int index]
 		{
 			get { return data[index]; }
 			set { data[index] = value; }
 		}
 
-		public override IEnumerator<Lisp.Object> GetEnumerator ()
+		public override IEnumerator<Shelisp.Object> GetEnumerator ()
 		{
 			for (int i = 0; i < data.Length; i ++)
 				yield return data[i];
@@ -40,28 +40,28 @@ namespace Lisp {
 		}
 
 		[LispBuiltin ("vectorp", MinArgs = 1)]
-		public static Lisp.Object Fvectorp(L l, Lisp.Object o)
+		public static Shelisp.Object Fvectorp(L l, Shelisp.Object o)
 		{
 			return (o is Vector) ? L.Qt : L.Qnil;
 		}
 
 		[LispBuiltin ("vector", MinArgs = 0)]
-		public static Lisp.Object Fvector (L l, params Lisp.Object[] args)
+		public static Shelisp.Object Fvector (L l, params Shelisp.Object[] args)
 		{
 			return new Vector (args);
 		}
 
 		[LispBuiltin ("make-vector", MinArgs = 2)]
-		public static Lisp.Object Fmake_vector (L l, Lisp.Object length, Lisp.Object val)
+		public static Shelisp.Object Fmake_vector (L l, Shelisp.Object length, Shelisp.Object val)
 		{
-			Lisp.Object[] vals = new Lisp.Object[(int)(Number)length];
+			Shelisp.Object[] vals = new Shelisp.Object[(int)(Number)length];
 			for (int i = 0; i < vals.Length; i ++)
 				vals[i] = val;
 			return new Vector (vals);
 		}
 
 		[LispBuiltin ("vconcat", MinArgs = 0)]
-		public static Lisp.Object Fvconcat (L l, params Lisp.Object[] args)
+		public static Shelisp.Object Fvconcat (L l, params Shelisp.Object[] args)
 		{
 			throw new NotImplementedException ();
 		}

@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Lisp {
+namespace Shelisp {
 	public class List : Sequence {
 		public List (Object car, Object cdr)
 		{
@@ -13,7 +13,7 @@ namespace Lisp {
 			length = 1 + (!L.LISTP(cdr) ? 0 : (L.NILP(cdr) ? 0 : ((List)cdr).Length));
 		}
 
-		public override Lisp.Object Eval (L l, Lisp.Object env = null)
+		public override Shelisp.Object Eval (L l, Shelisp.Object env = null)
 		{
 			env = env ?? l.Environment;
 
@@ -23,7 +23,7 @@ namespace Lisp {
 			Object first = L.CAR(this);
 			Object rest = L.CDR(this);
 
-			Lisp.Object fun = first;
+			Shelisp.Object fun = first;
 
 			if (first is Symbol) {
 				fun = ((Symbol)first).function;
@@ -32,16 +32,16 @@ namespace Lisp {
 
 			if (fun is Subr) {
 				Subr subr = (Subr)fun;
-				Lisp.Object[] args;
+				Shelisp.Object[] args;
 
 				if (!L.LISTP(rest))
 					throw new WrongTypeArgumentException ("listp", rest);
 				if (L.NILP (rest)) {
-					args = new Lisp.Object[0];
+					args = new Shelisp.Object[0];
 				}
 				else {
-					Lisp.List rest_list = L.CONS(rest);
-					args = new Lisp.Object[rest_list.Length];
+					Shelisp.List rest_list = L.CONS(rest);
+					args = new Shelisp.Object[rest_list.Length];
 					int i = 0;
 					if (subr.unevalled) {
 						Debug.Print ("   unevalled args");
@@ -60,7 +60,7 @@ namespace Lisp {
 					throw new Exception (string.Format ("(void-function {0})", first));
 				if (!L.LISTP (fun))
 					throw new Exception (string.Format ("(invalid-function {0})", first));
-				Lisp.Object funcar = L.CAR (fun);
+				Shelisp.Object funcar = L.CAR (fun);
 				if (!(funcar is Symbol))
 					throw new Exception (string.Format ("(invalid-function {0})", first));
 #if notyet
@@ -85,21 +85,21 @@ namespace Lisp {
 			}
 		}
 
-		public Lisp.Object ApplyLambda (L l, Lisp.Object lambda, Lisp.Object args, Lisp.Object env = null)
+		public Shelisp.Object ApplyLambda (L l, Shelisp.Object lambda, Shelisp.Object args, Shelisp.Object env = null)
 		{
 			if (env == null) env = l.Environment;
 
-			Lisp.Object rest = L.CDR (lambda); // get rid of the lambda
+			Shelisp.Object rest = L.CDR (lambda); // get rid of the lambda
 
-			Lisp.Object arg_names = L.CAR(rest);
+			Shelisp.Object arg_names = L.CAR(rest);
 
-			Lisp.Object body = L.CAR (L.CDR (rest));
+			Shelisp.Object body = L.CAR (L.CDR (rest));
 
 			/* evaluate each of the arguments in the current environment, then add them to the environment and evaluate the body of the lambda */
-			Lisp.Object lexenv = env;
+			Shelisp.Object lexenv = env;
 
-			IEnumerator<Lisp.Object> argname_enumerator = ((List)arg_names).GetEnumerator();
-			IEnumerator<Lisp.Object> arg_enumerator = ((List)args).GetEnumerator();
+			IEnumerator<Shelisp.Object> argname_enumerator = ((List)arg_names).GetEnumerator();
+			IEnumerator<Shelisp.Object> arg_enumerator = ((List)args).GetEnumerator();
 
 			while (argname_enumerator.MoveNext()) {
 				if (!arg_enumerator.MoveNext())
@@ -108,7 +108,7 @@ namespace Lisp {
 				lexenv = new List (new List (argname_enumerator.Current, arg_enumerator.Current.Eval (l, env)), lexenv);
 			}
 
-			Lisp.Object rv = body.Eval (l, lexenv);
+			Shelisp.Object rv = body.Eval (l, lexenv);
 
 			return rv;
 		}
@@ -121,7 +121,7 @@ namespace Lisp {
 			get { return length; }
 		}
 
-		public override IEnumerator<Lisp.Object> GetEnumerator ()
+		public override IEnumerator<Shelisp.Object> GetEnumerator ()
 		{
 			Object el = this;
 			while (L.LISTP(el)) {
@@ -145,37 +145,37 @@ namespace Lisp {
 		}
 
 		[LispBuiltin ("consp", MinArgs = 1)]
-		public static Lisp.Object Fconsp (L l, Lisp.Object cons)
+		public static Shelisp.Object Fconsp (L l, Shelisp.Object cons)
 		{
 			return L.CONSP(cons) ? L.Qt : L.Qnil;
 		}
 
 		[LispBuiltin ("atom", MinArgs = 1)]
-		public static Lisp.Object Fatom (L l, Lisp.Object cons)
+		public static Shelisp.Object Fatom (L l, Shelisp.Object cons)
 		{
 			return L.CONSP(cons) ? L.Qnil : L.Qt;
 		}
 
 		[LispBuiltin ("listp", MinArgs = 1)]
-		public static Lisp.Object Flistp (L l, Lisp.Object cons)
+		public static Shelisp.Object Flistp (L l, Shelisp.Object cons)
 		{
 			return L.LISTP(cons) ? L.Qt : L.Qnil;
 		}
 
 		[LispBuiltin ("nlistp", MinArgs = 1)]
-		public static Lisp.Object Fnlistp (L l, Lisp.Object cons)
+		public static Shelisp.Object Fnlistp (L l, Shelisp.Object cons)
 		{
 			return L.LISTP(cons) ? L.Qnil : L.Qt;
 		}
 
 		[LispBuiltin ("null", MinArgs = 1)]
-		public static Lisp.Object Fnull (L l, Lisp.Object cons)
+		public static Shelisp.Object Fnull (L l, Shelisp.Object cons)
 		{
 			return L.NILP(cons) ? L.Qt : L.Qnil;
 		}
 
 		[LispBuiltin ("cdr", MinArgs = 1)]
-		public static Lisp.Object Fcdr (L l, Lisp.Object cons)
+		public static Shelisp.Object Fcdr (L l, Shelisp.Object cons)
 		{
 			if (!L.LISTP (cons))
 				throw new WrongTypeArgumentException ("listp", cons);
@@ -185,7 +185,7 @@ namespace Lisp {
 		}
 
 		[LispBuiltin ("car", MinArgs = 1)]
-		public static Lisp.Object Fcar (L l, Lisp.Object cons)
+		public static Shelisp.Object Fcar (L l, Shelisp.Object cons)
 		{
 			if (!L.LISTP (cons))
 				throw new WrongTypeArgumentException ("listp", cons);
@@ -195,7 +195,7 @@ namespace Lisp {
 		}
 
 		[LispBuiltin ("assq", MinArgs = 2)]
-		public static Lisp.Object Fassq (L l, Lisp.Object key, Lisp.Object alist)
+		public static Shelisp.Object Fassq (L l, Shelisp.Object key, Shelisp.Object alist)
 		{
 			if (!L.LISTP(alist))
 				throw new ArgumentException ("alist is not a list");
@@ -214,7 +214,7 @@ namespace Lisp {
 		}
 
 		[LispBuiltin ("assoc", MinArgs = 2)]
-		public static Lisp.Object Fassoc (L l, Lisp.Object key, Lisp.Object alist)
+		public static Shelisp.Object Fassoc (L l, Shelisp.Object key, Shelisp.Object alist)
 		{
 			if (!L.LISTP(alist))
 				throw new ArgumentException ("alist is not a list");

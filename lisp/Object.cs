@@ -1,4 +1,4 @@
-namespace Lisp {
+namespace Shelisp {
 	public class Object {
 		public Object ()
 		{
@@ -16,19 +16,19 @@ namespace Lisp {
 
 		private string description;
 
-		public virtual Lisp.Object Eval (L l, Lisp.Object env = null)
+		public virtual Shelisp.Object Eval (L l, Shelisp.Object env = null)
 		{
 			// default implementation is for self-evaluating forms
 			return this;
 		}
 
-		public virtual bool LispEq (Lisp.Object other)
+		public virtual bool LispEq (Shelisp.Object other)
 		{
 			// default implementation only tests for reference equality
 			return object.ReferenceEquals (this, other);
 		}
 
-		public virtual bool LispEqual (Lisp.Object other)
+		public virtual bool LispEqual (Shelisp.Object other)
 		{
 			// default implementation only tests for reference equality
 			return object.ReferenceEquals (this, other);
@@ -75,7 +75,7 @@ namespace Lisp {
 		}
 
 		[LispBuiltin ("eq", MinArgs = 2)]
-		public static Lisp.Object Feq (L l, Lisp.Object o1, Lisp.Object o2)
+		public static Shelisp.Object Feq (L l, Shelisp.Object o1, Shelisp.Object o2)
 		{
 			if (L.NILP(o1))
 				return L.NILP(o2) ? L.Qt : L.Qnil;
@@ -84,7 +84,7 @@ namespace Lisp {
 		}
 
 		[LispBuiltin ("equal", MinArgs = 2)]
-		public static Lisp.Object Fequal (L l, Lisp.Object o1, Lisp.Object o2)
+		public static Shelisp.Object Fequal (L l, Shelisp.Object o1, Shelisp.Object o2)
 		{
 			if (L.NILP(o1))
 				return L.NILP(o2) ? L.Qt : L.Qnil;

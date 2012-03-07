@@ -1,8 +1,8 @@
 using System;
 using System.IO;
-using Lisp;
+using Shelisp;
 
-public class Shmacs {
+public class Test {
 	public static void Main (string[] args) {
 		var l = new L();
 
@@ -26,7 +26,7 @@ public class Shmacs {
 
 		Console.WriteLine (">>>>>>>> test 4"); 
 		try {
-			Lisp.Object obj = Lisp.Reader.Read ("(car '(1 2 3 \"hi\"))");
+			Shelisp.Object obj = Shelisp.Reader.Read ("(car '(1 2 3 \"hi\"))");
 			Console.WriteLine ("result = {0}", obj.Eval(l));
 		}
 		catch (Exception e) {
@@ -35,7 +35,7 @@ public class Shmacs {
 
 		Console.WriteLine (">>>>>>>> test 5"); 
 		try {
-			Lisp.Object obj = Lisp.Reader.Read ("((lambda (x) (car x)) '(1 2 3 \"hi\"))");
+			Shelisp.Object obj = Shelisp.Reader.Read ("((lambda (x) (car x)) '(1 2 3 \"hi\"))");
 			Console.WriteLine ("result = {0}", obj.Eval(l));
 		}
 		catch (Exception e) {
@@ -44,9 +44,9 @@ public class Shmacs {
 
 		Console.WriteLine (">>>>>>>> test 6"); 
 		try {
-			Lisp.Object obj = Lisp.Reader.Read ("(defun mycar (x) (car x))");
+			Shelisp.Object obj = Shelisp.Reader.Read ("(defun mycar (x) (car x))");
 			obj.Eval(l);
-			obj = Lisp.Reader.Read ("(mycar '(1 2 3 \"hi\"))");
+			obj = Shelisp.Reader.Read ("(mycar '(1 2 3 \"hi\"))");
 			Console.WriteLine ("result = {0}", obj.Eval(l));
 		}
 		catch (Exception e) {
@@ -55,7 +55,7 @@ public class Shmacs {
 
 		Console.WriteLine (">>>>>>>> test 999");
 		try {
-			Lisp.Object obj = Lisp.Reader.Read (new StreamReader ("test.lisp"));
+			Shelisp.Object obj = Shelisp.Reader.Read (new StreamReader ("test.lisp"));
 			obj.Eval (l);
 		}
 		catch (Exception e) {
@@ -64,7 +64,7 @@ public class Shmacs {
 
 		Console.WriteLine (">>>>>>>> test 9999"); 
 		try {
-			Lisp.Object obj = Lisp.Reader.Read (new StreamReader ("/Users/toshok/.emacs"));
+			Shelisp.Object obj = Shelisp.Reader.Read (new StreamReader ("/Users/toshok/.emacs"));
 			obj.Eval (l);
 		}
 		catch (Exception e) {

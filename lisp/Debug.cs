@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics;
 
-namespace Lisp {
+namespace Shelisp {
 	public class Debug {
 		[Conditional("DEBUG")]
 		public static void Print (object o)

@@ -1,4 +1,4 @@
-namespace Lisp {
+namespace Shelisp {
 	public class Symbol : Object {
 		public Symbol (string name)
 		{
@@ -12,16 +12,16 @@ namespace Lisp {
 
 		public string name;
 
-		public Lisp.Object value = L.Qunbound;
-		public Lisp.Object function = L.Qunbound;
+		public Shelisp.Object value = L.Qunbound;
+		public Shelisp.Object function = L.Qunbound;
 
-		public override Lisp.Object Eval (L l, Lisp.Object env = null)
+		public override Shelisp.Object Eval (L l, Shelisp.Object env = null)
 		{
 			/* Look up its binding in the lexical environment.
 			   We do not pay attention to the declared_special flag here, since we
 			   already did that when let-binding the variable.  */
 			Debug.Print ("symbol.Eval ({0})", this);
-			Lisp.Object lex_binding = List.Fassq (l, this, env ?? l.Environment);
+			Shelisp.Object lex_binding = List.Fassq (l, this, env ?? l.Environment);
 			Debug.Print ("lex_binding = {0}", lex_binding);
 			if (L.LISTP (lex_binding))
 				return L.CDR (lex_binding);
@@ -47,7 +47,7 @@ namespace Lisp {
 		}
 
 		[LispBuiltin ("symbol-name", MinArgs = 1)]
-		public static Lisp.Object SymbolName (L l, Lisp.Object o)
+		public static Shelisp.Object SymbolName (L l, Shelisp.Object o)
 		{
 			if (!(o is Symbol))
 				throw new WrongTypeArgumentException ("symbolp", o);
@@ -56,7 +56,7 @@ namespace Lisp {
 		}
 
 		[LispBuiltin ("symbol-value", MinArgs = 1)]
-		public static Lisp.Object Fsymbol_value (L l, Lisp.Object o)
+		public static Shelisp.Object Fsymbol_value (L l, Shelisp.Object o)
 		{
 			if (!(o is Symbol))
 				throw new WrongTypeArgumentException ("symbolp", o);
@@ -65,7 +65,7 @@ namespace Lisp {
 		}
 
 		[LispBuiltin ("fset", MinArgs = 2)]
-		public static Lisp.Object Ffset (L l, Lisp.Object sym, Lisp.Object defn)
+		public static Shelisp.Object Ffset (L l, Shelisp.Object sym, Shelisp.Object defn)
 		{
 			if (!(sym is Symbol))
 				throw new WrongTypeArgumentException ("symbolp", sym);

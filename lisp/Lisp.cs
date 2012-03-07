@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace Lisp {
+namespace Shelisp {
 
 	public class L {
 		static L ()
@@ -58,32 +58,32 @@ namespace Lisp {
 		}
 
 		// our current executing environment
-		public Lisp.Object Environment { get; set; }
+		public Shelisp.Object Environment { get; set; }
 
 		// the environment that contains all the builtin definitions
-		static Lisp.Object root_environment;
+		static Shelisp.Object root_environment;
 
-		public static Lisp.Object Qcdr;
-		public static Lisp.Object Qcar;
-		public static Lisp.Object Qt;
-		public static Lisp.Object Qnil;
-		public static Lisp.Object Qlambda;
-		public static Lisp.Object Qunbound;
-		public static Lisp.Object Qquote;
+		public static Shelisp.Object Qcdr;
+		public static Shelisp.Object Qcar;
+		public static Shelisp.Object Qt;
+		public static Shelisp.Object Qnil;
+		public static Shelisp.Object Qlambda;
+		public static Shelisp.Object Qunbound;
+		public static Shelisp.Object Qquote;
 
-		public static Dictionary<string,Lisp.Symbol> symbols = new Dictionary<string,Lisp.Symbol>();
+		public static Dictionary<string,Shelisp.Symbol> symbols = new Dictionary<string,Shelisp.Symbol>();
 
-		public static Lisp.Symbol intern (string str)
+		public static Shelisp.Symbol intern (string str)
 		{
-			Lisp.Symbol sym;
+			Shelisp.Symbol sym;
 			if (!symbols.TryGetValue(str, out sym)) {
-				sym = new Lisp.Symbol (str);
+				sym = new Shelisp.Symbol (str);
 				symbols[str] = sym;
 			}
 			return sym;
 		}
 
-		public static Lisp.List make_list (params Lisp.Object[] arr)
+		public static Shelisp.List make_list (params Shelisp.Object[] arr)
 		{
 			Object cons = Qnil;
 			for (int i = arr.Length - 1; i >= 0; i --)
@@ -91,79 +91,79 @@ namespace Lisp {
 			return CONS(cons);
 		}
 
-		private static Lisp.Subr DEFUN_internal (string lisp_name, string doc, int min_args, bool unevalled, MethodInfo meth, object target = null)
+		private static Shelisp.Subr DEFUN_internal (string lisp_name, string doc, int min_args, bool unevalled, MethodInfo meth, object target = null)
 		{
 			Subr s = new Subr (lisp_name, doc, 0, unevalled, meth);
 			return s;
 		}
 
-		private static Lisp.Subr DEFUN_internal (string lisp_name, string doc, int min_args, Delegate d)
+		private static Shelisp.Subr DEFUN_internal (string lisp_name, string doc, int min_args, Delegate d)
 		{
 			return DEFUN_internal (lisp_name, doc, 0, false, d.Method, d.Target);
 		}
 
-		public static Lisp.Subr DEFUN (string lisp_name, string doc, Action func)
+		public static Shelisp.Subr DEFUN (string lisp_name, string doc, Action func)
 		{
 			return DEFUN_internal (lisp_name, doc, 0, func);
 		}
 
-		public static Lisp.Subr DEFUN<T> (string lisp_name, string doc, int min_args, Func<T> func)
+		public static Shelisp.Subr DEFUN<T> (string lisp_name, string doc, int min_args, Func<T> func)
 		{
 			return DEFUN_internal (lisp_name, doc, min_args, func);
 		}
 
-		public static Lisp.Subr DEFUN<T1,T2> (string lisp_name, string doc, int min_args, Func<T1,T2> func)
+		public static Shelisp.Subr DEFUN<T1,T2> (string lisp_name, string doc, int min_args, Func<T1,T2> func)
 		{
 			return DEFUN_internal (lisp_name, doc, min_args, func);
 		}
 
-		public static Lisp.Subr DEFUN<T1,T2,T3> (string lisp_name, string doc, int min_args, Func<T1,T2,T3> func)
+		public static Shelisp.Subr DEFUN<T1,T2,T3> (string lisp_name, string doc, int min_args, Func<T1,T2,T3> func)
 		{
 			return DEFUN_internal (lisp_name, doc, min_args, func);
 		}
 
-		public static Lisp.Subr DEFUN<T1,T2,T3,T4> (string lisp_name, string doc, int min_args, Func<T1,T2,T3,T4> func)
+		public static Shelisp.Subr DEFUN<T1,T2,T3,T4> (string lisp_name, string doc, int min_args, Func<T1,T2,T3,T4> func)
 		{
 			return DEFUN_internal (lisp_name, doc, min_args, func);
 		}
 
-		public static Lisp.Object CAR (Lisp.Object cons)
+		public static Shelisp.Object CAR (Shelisp.Object cons)
 		{
 			return ((List)cons).car;
 		}
 
-		public static Lisp.Object CDR (Lisp.Object cons)
+		public static Shelisp.Object CDR (Shelisp.Object cons)
 		{
 			return NILP(cons) ? Qnil : ((List)cons).cdr;
 		}
 
-		public static Lisp.List CONS (Lisp.Object cons)
+		public static Shelisp.List CONS (Shelisp.Object cons)
 		{
 			return ((List)cons);
 		}
 
-		public static bool NILP (Lisp.Object o)
+		public static bool NILP (Shelisp.Object o)
 		{
 			return o == Qnil;
 		}
 
-		public static bool LISTP (Lisp.Object o)
+		public static bool LISTP (Shelisp.Object o)
 		{
 			return o is List || o == Qnil;
 		}
 
-		public static bool CONSP (Lisp.Object o)
+		public static bool CONSP (Shelisp.Object o)
 		{
 			return o is List;
 		}
 
 		// string foo
-		public static int SCHARS (Lisp.Object o)
+		public static int SCHARS (Shelisp.Object o)
 		{
 			return (o as String).native_string.Length;
 		}
 
-		public static char SREF (Lisp.Object o, int c)
+		public static char SREF (Shelisp.Object o, int c)
 		{
 			return (o as String).native_string[c];
 		}
@@ -173,12 +173,12 @@ namespace Lisp {
 The definition is (lambda ARGLIST [DOCSTRING] BODY...).
 See also the function `interactive'.
 usage: (defun NAME ARGLIST [DOCSTRING] BODY...)")]
-		public static Lisp.Object Fdefun (L l, Lisp.Object sym, Lisp.Object arglist, Lisp.Object body)
+		public static Shelisp.Object Fdefun (L l, Shelisp.Object sym, Shelisp.Object arglist, Shelisp.Object body)
 		{
 			if (!(sym is Symbol))
 				throw new WrongTypeArgumentException ("symbolp", sym);
 
-			Lisp.Object defn = L.make_list (L.Qlambda, arglist, body);
+			Shelisp.Object defn = L.make_list (L.Qlambda, arglist, body);
 
 			Symbol s = (Symbol)sym;
 			Symbol.Ffset (l, s, defn);
@@ -189,7 +189,7 @@ usage: (defun NAME ARGLIST [DOCSTRING] BODY...)")]
 		}
 
 		[LispBuiltin ("setq", MinArgs = 2, Unevalled = true)]
-		public static Lisp.Object Fsetq (L l, Lisp.Object sym, Lisp.Object val)
+		public static Shelisp.Object Fsetq (L l, Shelisp.Object sym, Shelisp.Object val)
 		{
 			if (!(sym is Symbol))
 				throw new WrongTypeArgumentException ("symbolp", sym);

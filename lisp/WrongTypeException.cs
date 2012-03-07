@@ -1,10 +1,10 @@
 using System;
 
-namespace Lisp {
+namespace Shelisp {
 
 	public class WrongTypeArgumentException : ArgumentException
 	{
-		public WrongTypeArgumentException (string predicate, Lisp.Object value)
+		public WrongTypeArgumentException (string predicate, Shelisp.Object value)
 			: base (string.Format ("(wrong-type-argument {0} {1})", predicate, value))
 		{
 		}

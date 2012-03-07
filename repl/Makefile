@@ -2,7 +2,7 @@ TOP=..
 
 PROGRAM=shrepl.exe
 PROGRAM_SOURCES=$(wildcard *.cs)
-REFERENCES=-r:$(TOP)/lisp/shelisp.dll
+REFERENCES=$(TOP)/lisp/shelisp.dll
 
 include $(TOP)/build/build.mk
 
