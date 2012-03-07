@@ -51,7 +51,7 @@ namespace Shelisp {
 
 		private static bool SymbolStartChar(char ch)
 		{
-			return (Char.IsLetter (ch) || ch == '_');
+			return (Char.IsLetter (ch) || ch == '_' || ch == '+' || ch == '-');
 		}
 
 		private static bool SymbolChar(char ch)
