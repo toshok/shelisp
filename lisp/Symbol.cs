@@ -1,8 +1,12 @@
+using System;
+
 namespace Shelisp {
 	public class Symbol : Object {
 		public Symbol (string name)
 		{
 			this.name = name;
+			this.value = L.Qunbound;
+			this.function = L.Qunbound;
 		}
 
 		public override string ToString()
@@ -12,8 +16,8 @@ namespace Shelisp {
 
 		public string name;
 
-		public Shelisp.Object value = L.Qunbound;
-		public Shelisp.Object function = L.Qunbound;
+		public Shelisp.Object value;
+		public Shelisp.Object function;
 
 		public override Shelisp.Object Eval (L l, Shelisp.Object env = null)
 		{
