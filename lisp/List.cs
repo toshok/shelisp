@@ -5,6 +5,17 @@ using System.Text;
 
 namespace Shelisp {
 	public class List : Sequence {
+		public List (Object[] objs)
+		{
+			if (objs.Length == 0)
+				throw new Exception ("this ctor can only be used with arrays of length >= 1");
+			Object tail = L.Qnil;
+			for (int i = objs.Length - 1; i >= 1; i --)
+				tail = new List (objs[i], tail);
+			cdr = tail;
+			car = objs[0];
+		}
+
 		public List (Object car, Object cdr)
 		{
 			this.car = car;
@@ -26,9 +37,13 @@ namespace Shelisp {
 			Shelisp.Object fun = first;
 
 			if (first is Symbol) {
-				fun = ((Symbol)first).function;
+				Debug.Print ("first is {0}", first);
+				fun = L.Findirect_function (l, first);
 				Debug.Print ("first was a symbol, function = {0}", fun);
 			}
+
+			if (fun == null)
+				throw new Exception ("fun is null");
 
 			if (fun is Subr) {
 				Subr subr = (Subr)fun;
@@ -47,7 +62,7 @@ namespace Shelisp {
 						Debug.Print ("   unevalled args");
 					}
 					else {
-						Debug.Print ("   unevalled args");
+						Debug.Print ("   evalled args");
 					}
 					foreach (var o in rest_list)
 						args[i++] = subr.unevalled ? o : o.Eval (l, env);
@@ -76,8 +91,11 @@ namespace Shelisp {
 				else
 					xsignal1 (Qinvalid_function, original_fun);
 #else
-				if (L.CAR (fun).LispEq (L.Qlambda)) {
+				if (funcar.LispEq (L.Qlambda)) {
 					return ApplyLambda (l, fun, rest, env);
+				}
+				else if (funcar.LispEq (L.Qmacro)) {
+					return ApplyLambda (l, L.CDR(fun), rest, env, false).Eval (l, env);
 				}
 				else
 					throw new Exception (string.Format ("(invalid-function {0})", first));
@@ -85,8 +103,9 @@ namespace Shelisp {
 			}
 		}
 
-		public Shelisp.Object ApplyLambda (L l, Shelisp.Object lambda, Shelisp.Object args, Shelisp.Object env = null)
+		public Shelisp.Object ApplyLambda (L l, Shelisp.Object lambda, Shelisp.Object args, Shelisp.Object env = null, bool eval_args = true)
 		{
+			Debug.Print ("in ApplyLambda, lambda = {0}, args = {1}, eval_args = {2}", lambda, args, eval_args);
 			if (env == null) env = l.Environment;
 
 			Shelisp.Object rest = L.CDR (lambda); // get rid of the lambda
@@ -98,17 +117,55 @@ namespace Shelisp {
 			/* evaluate each of the arguments in the current environment, then add them to the environment and evaluate the body of the lambda */
 			Shelisp.Object lexenv = env;
 
+			Console.WriteLine ("args = {0}/{1}", args.GetType(), args);
+			Console.WriteLine ("arg_names = {0}/{1}", arg_names.GetType(), arg_names);
+
 			IEnumerator<Shelisp.Object> argname_enumerator = ((List)arg_names).GetEnumerator();
-			IEnumerator<Shelisp.Object> arg_enumerator = ((List)args).GetEnumerator();
+			IEnumerator<Shelisp.Object> arg_enumerator = L.NILP (args) ? (new List<Shelisp.Object>()).GetEnumerator() : ((List)args).GetEnumerator();
 
+			bool optional_seen = false;
+			bool rest_seen = false;
 			while (argname_enumerator.MoveNext()) {
-				if (!arg_enumerator.MoveNext())
-					throw new Exception ();
+				if (((Symbol)argname_enumerator.Current).name == "&optional") {
+					optional_seen = true;
+					continue;
+				}
+				if (((Symbol)argname_enumerator.Current).name == "&rest") {
+					rest_seen = true;
+					continue;
+				}
 
-				lexenv = new List (new List (argname_enumerator.Current, arg_enumerator.Current.Eval (l, env)), lexenv);
+				if (rest_seen) {
+					// gather up the rest of the args into a single list, add it to the lexenv using the current argname,
+					// and break out of the loop
+					List<Shelisp.Object> list = new List<Shelisp.Object>();
+					while (arg_enumerator.MoveNext())
+						list.Add (eval_args ? arg_enumerator.Current.Eval (l, env) : arg_enumerator.Current);
+					Shelisp.Object rest_args = new List(list.ToArray());
+					lexenv = new List (new List (argname_enumerator.Current, rest_args), lexenv);
+					break;
+				}
+				else if (optional_seen) {
+					// if there is nothing else in arg_enumerator, set parameters to nil
+					if (!arg_enumerator.MoveNext()) {
+						lexenv = new List (new List (argname_enumerator.Current, L.Qnil), lexenv);
+						continue;
+					}
+				}
+				else {
+					if (!arg_enumerator.MoveNext())
+						throw new Exception ("not enough args");
+				}
+
+				lexenv = new List (new List (argname_enumerator.Current, eval_args ? arg_enumerator.Current.Eval (l, env) : arg_enumerator.Current), lexenv);
 			}
 
+			var old_env = l.Environment;
+			l.Environment = lexenv;
+
 			Shelisp.Object rv = body.Eval (l, lexenv);
+
+			l.Environment = old_env;
 
 			return rv;
 		}
@@ -144,6 +201,40 @@ namespace Shelisp {
 			return sb.ToString();
 		}
 
+		[LispBuiltin ("list", MinArgs = 0)]
+		public static Shelisp.Object Flist (L l, params Shelisp.Object[] rest)
+		{
+			return new List (rest);
+		}
+
+		[LispBuiltin ("nconc", MinArgs = 1)]
+		public static Shelisp.Object Fnconc (L l, params Shelisp.Object[] rest)
+		{
+			if (rest.Length == 0)
+				return L.Qnil;
+
+			var tail = rest[rest.Length - 1];
+			for (int i = rest.Length - 2; i >= 0; i --) {
+				var before = rest[i];
+				if (L.CONSP (before)) {
+					List head = (List)before;
+					while (!L.Qnil.LispEq (head.cdr))
+						head = (List)head.cdr;
+					// destructively update head so that the cdr points at tail
+					head.cdr = tail;
+					tail = rest[i];
+				}
+			}
+			return tail;
+
+		}
+
+		[LispBuiltin ("cons", MinArgs = 2)]
+		public static Shelisp.Object Fcons (L l, Shelisp.Object car, Shelisp.Object cdr)
+		{
+			return new List (car, cdr);
+		}
+
 		[LispBuiltin ("consp", MinArgs = 1)]
 		public static Shelisp.Object Fconsp (L l, Shelisp.Object cons)
 		{
@@ -172,6 +263,19 @@ namespace Shelisp {
 		public static Shelisp.Object Fnull (L l, Shelisp.Object cons)
 		{
 			return L.NILP(cons) ? L.Qt : L.Qnil;
+		}
+
+		[LispBuiltin ("member", MinArgs = 2)]
+		public static Shelisp.Object Fnull (L l, Shelisp.Object obj, Shelisp.Object list)
+		{
+			// check @list arg type
+			while (L.CONSP (list)) {
+				if (obj.LispEqual (L.CAR(list)))
+					return list;
+				list = L.CDR (list);
+			}
+
+			return L.Qnil;
 		}
 
 		[LispBuiltin ("cdr", MinArgs = 1)]

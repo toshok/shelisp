@@ -19,11 +19,22 @@ namespace Shelisp {
 			return ((Array)arr)[(int)(Number)idx];
 		}
 
-		[LispBuiltin ("aset", MinArgs = 3)]
-		public static Shelisp.Object Faset(L l, Shelisp.Object arr, Shelisp.Object idx, Shelisp.Object val)
+		[LispBuiltin ("aset", MinArgs = 3, Unevalled = true)]
+		public static Shelisp.Object Faset(L l, Shelisp.Object sym, Shelisp.Object idx, Shelisp.Object val)
 		{
-			// XXX type checks
-			return ((Array)arr)[(int)(Number)idx] = val;
+			Shelisp.Object arr = sym.Eval (l).Eval(l);
+			idx = idx.Eval(l);
+			val = val.Eval(l);
+
+			if (arr is Vector) {
+				return ((Vector)arr)[(int)(Number)idx] = val;
+			}
+			else if (arr is Array) {
+				return ((Array)arr)[(int)(Number)idx] = val;
+			}
+			else {
+				throw new WrongTypeArgumentException ("array-or-vectorp", sym);
+			}
 		}
 
 		[LispBuiltin ("fillarray", MinArgs = 2)]

@@ -27,10 +27,14 @@ namespace Shelisp {
 			Debug.Print ("symbol.Eval ({0})", this);
 			Shelisp.Object lex_binding = List.Fassq (l, this, env ?? l.Environment);
 			Debug.Print ("lex_binding = {0}", lex_binding);
-			if (L.LISTP (lex_binding))
+			if (L.CONSP (lex_binding)) {
+				Debug.Print ("list, returning {0}", L.CDR (lex_binding));
 				return L.CDR (lex_binding);
-			else
+			}
+			else {
+				Debug.Print ("symbol, returning {0}", Symbol.Fsymbol_value (l, this));
 				return Symbol.Fsymbol_value (l, this);
+			}
 		}
 
 		public override int GetHashCode ()
@@ -48,6 +52,14 @@ namespace Shelisp {
 		public static implicit operator Symbol (System.String str)
 		{
 			return new Symbol (str);
+		}
+
+		[LispBuiltin ("boundp", MinArgs = 1)]
+		public static Shelisp.Object Fboundp (L l, Shelisp.Object sym)
+		{
+			sym = sym.Eval (l);
+			Shelisp.Object lex_binding = List.Fassq (l, sym, l.Environment);
+			return L.CONSP (lex_binding) ? L.Qt : L.Qnil;
 		}
 
 		[LispBuiltin ("symbol-name", MinArgs = 1)]
@@ -68,6 +80,15 @@ namespace Shelisp {
 			return ((Symbol)o).value;
 		}
 
+		[LispBuiltin ("symbol-function", MinArgs = 1)]
+		public static Shelisp.Object Fsymbol_function (L l, Shelisp.Object o)
+		{
+			if (!(o is Symbol))
+				throw new WrongTypeArgumentException ("symbolp", o);
+
+			return ((Symbol)o).function;
+		}
+
 		[LispBuiltin ("fset", MinArgs = 2)]
 		public static Shelisp.Object Ffset (L l, Shelisp.Object sym, Shelisp.Object defn)
 		{
@@ -79,6 +100,18 @@ namespace Shelisp {
 			((Symbol)sym).function = defn;
 			return defn;
 		}
+
+		[LispBuiltin ("put", MinArgs = 3)]
+		public static Shelisp.Object Fput (L l, Shelisp.Object sym, Shelisp.Object property, Shelisp.Object value)
+		{
+			if (!(sym is Symbol))
+				throw new WrongTypeArgumentException ("symbolp", sym);
+
+			// XXX more here
+
+			return value;
+		}
+
 	}
 
 }

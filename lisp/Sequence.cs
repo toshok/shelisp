@@ -20,12 +20,21 @@ namespace Shelisp {
 		[LispBuiltin ("elt", MinArgs = 2)]
 		public static Shelisp.Object Felt(L l, Shelisp.Object seq, Shelisp.Object index)
 		{
+			if (L.Qnil.LispEq (seq))
+				return L.Qnil;
+			Console.WriteLine ("Felt {0} {1}", seq.GetType(), index.GetType());
 			// XXX add type checks
 			int idx = (int)(Number)index;
 			foreach (var el in (Sequence)seq)
 				if (idx-- == 0)
 					return el;
 			return L.Qnil;
+		}
+
+		[LispBuiltin ("nth", MinArgs = 2)]
+		public static Shelisp.Object Fnth(L l, Shelisp.Object index, Shelisp.Object seq)
+		{
+			return Sequence.Felt (l, seq, index);
 		}
 
 		[LispBuiltin ("length", MinArgs = 1)]

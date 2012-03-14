@@ -52,7 +52,7 @@ endif
 
 ifneq ($(LIBRARY),)
 $(LIBRARY): $(LIBRARY_SOURCES) $(REFERENCES)
-	$(GMCS) -debug $(EXTRA_FLAGS) -out:$@ -target:library $(LIBRARY_SOURCES) $(REFERENCES:%=-r%)
+	$(GMCS) -debug $(EXTRA_FLAGS) -out:$@ -target:library $(LIBRARY_SOURCES) $(REFERENCES:%=-r:%)
 
 all-local:: $(LIBRARY)
 

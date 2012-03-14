@@ -37,16 +37,17 @@ public class Repl {
 
 		Monitor.Enter (output_lock);
 		while (true) {
-			Monitor.Wait (output_lock, 100);
 			Console.Write ("shelisp[{0}]> ", prompt_depth);
 			for (int i = 0; i < prompt_depth; i ++)
 				Console.Write ("  ");
 			string input = Console.ReadLine ();
 			if (input.Trim() != "")
 				prompt_depth ++;
-			repl_writer.Write(input);
-			repl_writer.Write("\n");
+			repl_writer.WriteLine(input);
 			repl_writer.Flush();
+
+			// wait until evaluation is finished
+			Monitor.Wait (output_lock, 100);
 		}
 	}
 }

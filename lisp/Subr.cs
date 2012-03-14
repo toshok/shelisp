@@ -37,7 +37,7 @@ namespace Shelisp {
 
 			method_args[0] = l;
 
-			SysArray.Copy (args, 0, method_args, 1, parameters.Length - param_offset);
+			SysArray.Copy (args, 0, method_args, 1, Math.Min (args.Length, parameters.Length - param_offset));
 
 			var num_rest_args = args.Length - parameters.Length + param_offset;
 			if (num_rest_args > 0) {
@@ -52,16 +52,26 @@ namespace Shelisp {
 					method_args[parameters.Length - 1] = new Object[0];
 			}
 
-			var rv = (Object)method.Invoke (target, method_args);
-			return rv;
+			try {
+				var rv = (Object)method.Invoke (target, method_args);
+				return rv;
+			}
+			catch (Exception e) {
+				Console.WriteLine ("Exception raised while invoking {0}", this);
+				Console.WriteLine ("with args:");
+				foreach (var arg in args)
+					Console.WriteLine (" + {0}", arg);
+				Console.WriteLine (Environment.StackTrace);
+				throw;
+			}
 		}
 
 		public override string ToString ()
 		{
 #if VERBOSE_SUBR_FORMAT
-			return string.Format ("#subr<{0},{1}.{2}()>", name, method.DeclaringType.FullName, method.Name);
+			return string.Format ("#<subr {0},{1}.{2}()>", name, method.DeclaringType.FullName, method.Name);
 #else
-			return string.Format ("#subr<{0}>", name);
+			return string.Format ("#<subr {0}>", name);
 #endif
 		}
 
