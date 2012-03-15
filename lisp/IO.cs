@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Shelisp {
 	public class IO {
@@ -34,7 +35,34 @@ namespace Shelisp {
 		[LispBuiltin ("message", MinArgs = 1)]
 		public static Shelisp.Object Fmessage (L l, Shelisp.Object format, params Shelisp.Object[] args)
 		{
-			Console.WriteLine (format);
+			if (format is Shelisp.String) {
+				int arg_num = 0;
+				StringBuilder sb = new StringBuilder ();
+				string format_s = (string)(Shelisp.String)format;
+				for (int i = 0; i < format_s.Length; i ++) {
+					if (format_s[i] == '%') {
+						char specifier = format_s[++i];
+						switch (specifier) {
+						case '%':
+							sb.Append ('%');
+							break;
+						case 's':
+							sb.Append (args[arg_num++].ToString());
+							break;
+						default:
+							throw new Exception (string.Format ("format {0} unsupported", specifier));
+						}
+					}
+					else {
+						sb.Append (format_s[i]);
+					}
+				}
+				Console.WriteLine (sb.ToString());
+			}
+			else {
+				Console.WriteLine (format);
+			}
+
 			return L.Qnil;
 		}
 	}

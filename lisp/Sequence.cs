@@ -22,7 +22,6 @@ namespace Shelisp {
 		{
 			if (L.Qnil.LispEq (seq))
 				return L.Qnil;
-			Console.WriteLine ("Felt {0} {1}", seq.GetType(), index.GetType());
 			// XXX add type checks
 			int idx = (int)(Number)index;
 			foreach (var el in (Sequence)seq)
@@ -40,6 +39,9 @@ namespace Shelisp {
 		[LispBuiltin ("length", MinArgs = 1)]
 		public static Shelisp.Object Flength(L l, Shelisp.Object o)
 		{
+			if (L.NILP (o))
+				return 0;
+
 			if (!(o is Sequence))
 				throw new Exception ("non-seq passed to length");
 
@@ -50,30 +52,66 @@ namespace Shelisp {
 		[LispBuiltin ("copy-sequence", MinArgs = 1)]
 		public static Shelisp.Object Fcopy_sequence(L l, Shelisp.Object seq)
 		{
-			// XXX shallow copy of the sequence seq, 1 level deep.
-			throw new NotImplementedException ();
+			// XXX bad bad bad
+			return seq;
 		}
 
 		[LispBuiltin ("mapcar", MinArgs = 2)]
 		public static Shelisp.Object Fmapcar(L l, Shelisp.Object fun, Shelisp.Object seq)
 		{
+			if (L.Qnil.LispEq (seq))
+				return L.Qnil;
+
 			if (!(seq is Sequence))
-				throw new Exception ("non-sequence passed to mapcar");
-			if (!(fun is Subr))
-				throw new Exception ("non-function passed to mapcar");
+				throw new WrongTypeArgumentException ("sequencep", seq);
 
 			Sequence s = (Sequence)seq;
-			Subr subr = (Subr)fun;
 
 			List<Shelisp.Object> mapped = new List<Shelisp.Object>();
-			Shelisp.Object[] call_arg = new Shelisp.Object[1];
-			foreach (var o in s) {
-				call_arg[0] = o;
-				mapped.Add(subr.Call (l, call_arg));
-			}
-			// XXX this does the wrong thing since make_list takes params[] now
-			return L.make_list (mapped.ToArray());
+			foreach (var o in s)
+				mapped.Add(L.make_list (fun, new List (L.Qquote, new List (o, L.Qnil))).Eval (l));
+
+			return new List (mapped.ToArray());
 		}
 
+		[LispBuiltin ("mapc", MinArgs = 2)]
+		public static Shelisp.Object Fmapc(L l, Shelisp.Object fun, Shelisp.Object seq)
+		{
+			if (L.Qnil.LispEq (seq))
+				return L.Qnil;
+
+			if (!(seq is Sequence))
+				throw new WrongTypeArgumentException ("sequencep", seq);
+
+			Sequence s = (Sequence)seq;
+
+			foreach (var o in s)
+				L.make_list (fun, new List (L.Qquote, new List (o, L.Qnil))).Eval (l);
+
+			return seq;
+		}
+
+		[LispBuiltin ("append", MinArgs = 0)]
+		public static Shelisp.Object Fappend (L l, params Shelisp.Object[] sequences)
+		{
+			if (sequences.Length == 0)
+				return L.Qnil;
+
+			Shelisp.Object tail = sequences[sequences.Length - 1];
+			for (int i = sequences.Length - 2; i >= 0; i --) {
+				if (sequences[i] is Array) {
+					Array arr = (Array)sequences[i];
+					for (int j = arr.Length - 1; j >= 0; j --)
+						tail = new List (arr[j], tail);
+				}
+				else if (sequences[i] is List) {
+					Shelisp.List reversed = (Shelisp.List)Shelisp.List.reverse (sequences[i]);
+					foreach (var el in reversed)
+						tail = new List(el, tail);
+				}
+			}
+
+			return tail;
+		}
 	}
 }

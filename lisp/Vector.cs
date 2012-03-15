@@ -9,6 +9,13 @@ namespace Shelisp {
 			this.data = data;
 		}
 
+		public Vector (int length, Shelisp.Object initial)
+		{
+			data = new Shelisp.Object[length];
+			for (int i = 0; i < length; i ++)
+				data[i] = initial;
+		}
+
 		Shelisp.Object[] data;
 
 		public override int Length {

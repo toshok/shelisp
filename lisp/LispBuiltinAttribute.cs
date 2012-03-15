@@ -2,7 +2,7 @@ using System;
 
 namespace Shelisp {
 
-	[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+	[AttributeUsage(AttributeTargets.Method | AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = true)]
 	public class LispBuiltinAttribute : Attribute {
 		public LispBuiltinAttribute (string name)
 		{

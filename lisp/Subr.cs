@@ -52,18 +52,16 @@ namespace Shelisp {
 					method_args[parameters.Length - 1] = new Object[0];
 			}
 
-			try {
-				var rv = (Object)method.Invoke (target, method_args);
-				return rv;
-			}
-			catch (Exception e) {
-				Console.WriteLine ("Exception raised while invoking {0}", this);
-				Console.WriteLine ("with args:");
-				foreach (var arg in args)
-					Console.WriteLine (" + {0}", arg);
-				Console.WriteLine (Environment.StackTrace);
-				throw;
-			}
+ 			try {
+				return (Object)method.Invoke (target, method_args);
+ 			}
+ 			catch (Exception e) {
+ 				Console.WriteLine ("Exception raised while invoking {0}", this);
+ 				Console.WriteLine ("with args:");
+ 				foreach (var arg in args)
+ 					Console.WriteLine (" +{0} {1}", arg.GetType(), arg);
+ 				throw;
+ 			}
 		}
 
 		public override string ToString ()

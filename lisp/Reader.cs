@@ -156,6 +156,15 @@ namespace Shelisp {
 						goto start;
 					}
 				}
+				else if (ch == '#') {
+					if (sb.Length > 0) {
+						return ReadSymbolLikeThing (sb.ToString());
+					}
+					else {
+						s.Read(); // consume the # and ignore it.  it's a way to reference byte compiled functions but it should work just as well without
+						goto start;
+					}
+				}
 				else if (ch == '\'') {
 					if (sb.Length > 0) {
 						return ReadSymbolLikeThing (sb.ToString());
@@ -163,6 +172,15 @@ namespace Shelisp {
 					else {
 						s.Read(); // consume the quote and recurse
 						return new Quote (Read(s, valid_end));
+					}
+				}
+				else if (ch == '`') {
+					if (sb.Length > 0) {
+						return ReadSymbolLikeThing (sb.ToString());
+					}
+					else {
+						s.Read(); // consume the backquote and recurse
+						return new List (L.intern ("`"), new List (Read(s, valid_end), L.Qnil));
 					}
 				}
 				else {
@@ -187,13 +205,11 @@ namespace Shelisp {
 
 		static int ReturnCharOrThrow (TextReader s, int value)
 		{
-			Console.WriteLine ("ReturnCharOrThrow ({0})", value);
 			// check if the next character in our reader is valid ending punctuation (whitespace or ')'.. anything else?)
 			char ch = (char)s.Peek();
 			if (Char.IsWhiteSpace(ch) || ch == ')' || ch == ']')
 				return value;
 			
-			Console.WriteLine ("next character is '{0}'", ch);
 			throw new Exception ("(invalid-read-syntax ?)");
 		}
 
@@ -228,13 +244,11 @@ namespace Shelisp {
 		static int ReadCharacterLiteralAsNumber (TextReader s)
 		{
 			char ch = (char)s.Peek();
-			Console.WriteLine ("ch = {0}", ch);
 			if (ch == '\\') {
 				// escape sequence
 				s.Read(); // read the slash
 
 				ch = (char)s.Read(); // unconditionally read the next character
-				Console.WriteLine ("ch = {0}", ch);
 
 				switch (ch) {
 				case 'a':
@@ -242,7 +256,6 @@ namespace Shelisp {
 					if (s.Peek() == '-') {
 						// consume the A- prefix
 						ch = (char)s.Read();
-						Console.WriteLine ("ch = {0}", ch);
 						if (ch != '-')
 							throw new Exception ("invalid escape sequence");
 
@@ -274,7 +287,6 @@ namespace Shelisp {
 					if (s.Peek() == '-') {
 						// consume the S- prefix
 						ch = (char)s.Read();
-						Console.WriteLine ("ch = {0}", ch);
 						if (ch != '-')
 							throw new Exception ("invalid escape sequence");
 
@@ -300,7 +312,6 @@ namespace Shelisp {
 				}
 				case '^': {
 					ch = (char)s.Read();
-					Console.WriteLine ("ch = {0}", ch);
 					return Char.ToUpper(ch)-'A';
 				}
 				case 'c':
@@ -328,7 +339,6 @@ namespace Shelisp {
 				case 'M': {
 					// consume the M- prefix
 					ch = (char)s.Read();
-					Console.WriteLine ("ch = {0}", ch);
 					if (ch != '-')
 						throw new Exception ("invalid escape sequence");
 
@@ -341,7 +351,6 @@ namespace Shelisp {
 				case 'H': {
 					// consume the H- prefix
 					ch = (char)s.Read();
-					Console.WriteLine ("ch = {0}", ch);
 					if (ch != '-')
 						throw new Exception ("invalid escape sequence");
 

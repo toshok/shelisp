@@ -18,7 +18,7 @@ namespace Shelisp {
 
 		public override Shelisp.Object this[int index]
 		{
-			get { return native_string[index]; }
+			get { return (Number)(int)native_string[index]; }
 			set { /* XXX type check */ native_string[index] = (char)(int)(Number)value; }
 		}
 
@@ -53,12 +53,8 @@ namespace Shelisp {
 			int start_i = start == null ? 0 : (int)((Shelisp.Number)start).boxed;
 
 
-			Console.WriteLine ("before = {0}", regex_s);
-
 			regex_s = regex_s.Replace ("\\(", "OMGOPENPAREN").Replace ("(", "\\(").Replace ("OMGOPENPAREN", "(");
 			regex_s = regex_s.Replace ("\\)", "OMGCLOSEPAREN").Replace (")", "\\)").Replace ("OMGCLOSEPAREN", ")");
-
-			Console.WriteLine ("after {0}", regex_s);
 
 			var re = new Regex (regex_s);
 
@@ -139,6 +135,13 @@ namespace Shelisp {
 			throw new Exception (string.Format ("failed to parse string '{0}'", s));
 		}
 
+		[LispBuiltin ("string-to-multibyte", MinArgs = 1)]
+		public static Shelisp.Object Fstring_to_multibyte (L l, Shelisp.Object str)
+		{
+			Console.WriteLine ("string-to-multibyte not implemented");
+			return str;
+		}
+
 		[LispBuiltin ("string-equal", MinArgs = 2)]
 		public static Shelisp.Object Fstring_equal(L l, Shelisp.Object str1, Shelisp.Object str2)
 		{
@@ -154,6 +157,20 @@ namespace Shelisp {
 			// XXX
 			return seqs[0];
 		}
+
+		[LispBuiltin ("stringp")]
+		public static Shelisp.Object Fconcat(L l, Shelisp.Object str)
+		{
+			return str is Shelisp.String ? L.Qt : L.Qnil;
+		}
+
+		[LispBuiltin ("propertize", MinArgs = 1)]
+		public static Shelisp.Object Fpropertize(L l, Shelisp.Object str, params Shelisp.Object[] propvals)
+		{
+			Console.WriteLine ("propertize not implemented");
+			return str;
+		}
+
 	}
 
 }

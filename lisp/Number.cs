@@ -7,6 +7,14 @@ namespace Shelisp {
 			this.boxed = boxed;
 		}
 
+		public override int GetHashCode ()
+		{
+			if (boxed is int)
+				return ((int)boxed).GetHashCode();
+			else
+				return ((float)boxed).GetHashCode();
+		}
+
 		public override bool LispEq (Shelisp.Object other)
 		{
 			if (!(other is Number))
@@ -83,6 +91,42 @@ namespace Shelisp {
 			return (num is Number && ((Number)num).boxed is float) ? L.Qt : L.Qnil;
 		}
 
+		[LispBuiltin ("<", MinArgs = 2)]
+		public static Shelisp.Object Fnumlt (L l, Shelisp.Object op1, Shelisp.Object op2)
+		{
+			if (!(op1 is Number)) throw new WrongTypeArgumentException ("numberp", op1);
+			if (!(op2 is Number)) throw new WrongTypeArgumentException ("numberp", op2);
+
+			Number ln = (Number)op1;
+			Number rn = (Number)op2;
+
+			bool need_float = (ln.boxed is float || rn.boxed is float);
+
+			if (need_float) {
+				return ((float)ln.boxed < (float)rn.boxed) ? L.Qt : L.Qnil;
+			}
+			else
+				return ((int)ln.boxed < (int)rn.boxed) ? L.Qt : L.Qnil;
+		}
+
+		[LispBuiltin (">", MinArgs = 2)]
+		public static Shelisp.Object Fnumgt (L l, Shelisp.Object op1, Shelisp.Object op2)
+		{
+			if (!(op1 is Number)) throw new WrongTypeArgumentException ("numberp", op1);
+			if (!(op2 is Number)) throw new WrongTypeArgumentException ("numberp", op2);
+
+			Number ln = (Number)op1;
+			Number rn = (Number)op2;
+
+			bool need_float = (ln.boxed is float || rn.boxed is float);
+
+			if (need_float) {
+				return ((float)ln.boxed > (float)rn.boxed) ? L.Qt : L.Qnil;
+			}
+			else
+				return ((int)ln.boxed > (int)rn.boxed) ? L.Qt : L.Qnil;
+		}
+
 		[LispBuiltin ("=", MinArgs = 2)]
 		public static Shelisp.Object Fnumequal (L l, Shelisp.Object op1, Shelisp.Object op2)
 		{
@@ -132,10 +176,14 @@ namespace Shelisp {
 			Number ln = (Number)op1;
 			Number rn = (Number)op2;
 
-			bool need_float = (ln.boxed is float || rn.boxed is float);
-
-			if (need_float) {
+			if (ln.boxed is float && rn.boxed is float) {
 				return new Number ((float)ln.boxed + (float)rn.boxed);
+			}
+			else if (ln.boxed is float) {
+				return new Number ((float)ln.boxed + (int)rn.boxed);
+			}
+			else if (rn.boxed is float) {
+				return new Number ((int)ln.boxed + (float)rn.boxed);
 			}
 			else
 				return new Number ((int)ln.boxed + (int)rn.boxed);
@@ -150,10 +198,14 @@ namespace Shelisp {
 			Number ln = (Number)op1;
 			Number rn = (Number)op2;
 
-			bool need_float = (ln.boxed is float || rn.boxed is float);
-
-			if (need_float) {
+			if (ln.boxed is float && rn.boxed is float) {
 				return new Number ((float)ln.boxed - (float)rn.boxed);
+			}
+			else if (ln.boxed is float) {
+				return new Number ((float)ln.boxed - (int)rn.boxed);
+			}
+			else if (rn.boxed is float) {
+				return new Number ((int)ln.boxed - (float)rn.boxed);
 			}
 			else
 				return new Number ((int)ln.boxed - (int)rn.boxed);
@@ -168,10 +220,14 @@ namespace Shelisp {
 			Number ln = (Number)op1;
 			Number rn = (Number)op2;
 
-			bool need_float = (ln.boxed is float || rn.boxed is float);
-
-			if (need_float) {
+			if (ln.boxed is float && rn.boxed is float) {
 				return new Number ((float)ln.boxed / (float)rn.boxed);
+			}
+			else if (ln.boxed is float) {
+				return new Number ((float)ln.boxed / (int)rn.boxed);
+			}
+			else if (rn.boxed is float) {
+				return new Number ((int)ln.boxed / (float)rn.boxed);
 			}
 			else
 				return new Number ((int)ln.boxed / (int)rn.boxed);
@@ -186,10 +242,14 @@ namespace Shelisp {
 			Number ln = (Number)op1;
 			Number rn = (Number)op2;
 
-			bool need_float = (ln.boxed is float || rn.boxed is float);
-
-			if (need_float) {
+			if (ln.boxed is float && rn.boxed is float) {
 				return new Number ((float)ln.boxed * (float)rn.boxed);
+			}
+			else if (ln.boxed is float) {
+				return new Number ((float)ln.boxed * (int)rn.boxed);
+			}
+			else if (rn.boxed is float) {
+				return new Number ((int)ln.boxed * (float)rn.boxed);
 			}
 			else
 				return new Number ((int)ln.boxed * (int)rn.boxed);
