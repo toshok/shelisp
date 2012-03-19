@@ -24,7 +24,7 @@ namespace Shelisp {
 		public Object Call (L l, Object[] args)
 		{
 			if (args.Length < min_args) {
-				Console.WriteLine (this);
+				Console.WriteLine ("subr we're calling is {0}", this);
 				foreach (var arg in args) {
 					Console.WriteLine (" + {0}", arg);
 				}

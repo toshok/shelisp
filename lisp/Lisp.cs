@@ -339,6 +339,18 @@ namespace Shelisp {
 			return cons;
 		}
 
+		public static Shelisp.Object make_list_atom_tail (params Shelisp.Object[] arr)
+		{
+			if (arr.Length > 1) {
+				Object cons = arr[arr.Length-1];
+				for (int i = arr.Length - 2; i >= 0; i --)
+					cons = new List (arr[i], cons);
+				return cons;
+			}
+			else
+				throw new Exception ("failed to make list with non-cons tail");
+		}
+
 		public static Shelisp.Object make_list (params Shelisp.Object[] arr)
 		{
 			Object cons = Qnil;

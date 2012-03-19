@@ -90,6 +90,7 @@ public class Test {
 		l.Vload_path = new List ((Shelisp.String)Environment.CurrentDirectory, l.Vload_path);
 
 		FileIO.Fload_file (l, "eq-tests.el");
+		FileIO.Fload_file (l, "list-tests.el");
 		FileIO.Fload_file (l, "hash-tests.el");
 		FileIO.Fload_file (l, "obarray-tests.el");
 

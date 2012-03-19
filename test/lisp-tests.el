@@ -32,17 +32,17 @@
 ;;         (progn (message "FAIL") nil))
 ;;     (t (message "failex") nil)))
 
-(defun test-failure (messsage)
+(defun test-failure (msg)
   (if verbose-tests
-      (message "%d) FAILED %s" number-of-tests message)
+      (message "%d) FAILED %s" number-of-tests msg)
      (princ "F"))
-  (setq failed-tests (cons '(number-of-tests message) failed-tests))
+  (setq failed-tests (cons '(number-of-tests msg) failed-tests))
   (setq number-of-tests (1+ number-of-tests))
   nil)
 
-(defun test-success (messsage)
+(defun test-success (msg)
   (if verbose-tests
-     (message "%d) PASSED %s" number-of-tests message)
+     (message "%d) PASSED %s" number-of-tests msg)
     (princ "."))
   (setq number-of-tests (1+ number-of-tests))
   t)

@@ -112,8 +112,10 @@ namespace Shelisp {
 					throw new LispInvalidFunctionException (first);
 				}
 				Shelisp.Object funcar = L.CAR (fun);
-				if (!(funcar is Symbol))
+				if (!(funcar is Symbol)) {
+					Console.WriteLine (this);
 					throw new LispInvalidFunctionException (first);
+				}
 				if (funcar.LispEq (L.Qautoload)) {
 					FileIO.DoAutoload (l, fun, first);
 					goto retry;
@@ -128,16 +130,32 @@ namespace Shelisp {
 					xsignal1 (Qinvalid_function, original_fun);
 #else
 				if (funcar.LispEq (L.Qmacro)) {
-					Console.WriteLine ("evaluating macro, {0}, ", L.CDR(fun));
+					for (int i = 0; i < eval_depth; i ++)
+						Console.Write (" ");
+					Console.WriteLine ("evaluating macro application, {0} = {1}, ", first, L.CDR(fun));
 					foreach (var r in (List)rest) {
+						for (int i = 0; i < eval_depth + 1; i ++)
+							Console.Write (" ");
 						Console.WriteLine ("arg: {0}", r);
 					}
+					eval_depth += 2;
 					var expanded = List.ApplyLambda (l, L.CDR(fun), rest, env, false);
-					Console.WriteLine ("returned {0}", expanded);
-					return expanded.Eval (l, env);
+					eval_depth -= 2;
+					for (int i = 0; i < eval_depth; i ++)
+						Console.Write (" ");
+					Console.WriteLine ("macro {0} expanded to {1}", first, expanded);
+					var expanded_evalled = expanded.Eval (l, env);
+					for (int i = 0; i < eval_depth; i ++)
+						Console.Write (" ");
+					Console.WriteLine ("evaluating resulted in {0}", expanded_evalled);
+					return expanded_evalled;
 				}
 				if (funcar.LispEq (L.Qlambda)
 				    || funcar.LispEq (L.Qclosure)) {
+					for (int i = 0; i < eval_depth; i ++)
+						Console.Write (" ");
+					Console.WriteLine ("evaluating function application, {0} = {1}, ", first, L.CDR(fun));
+
 					return List.ApplyLambda (l, fun, rest, env);
 				}
 				else {
@@ -147,6 +165,8 @@ namespace Shelisp {
 #endif
 			}
 		}
+
+		static int eval_depth = 0;
 
 		public static Shelisp.Object ApplyLambda (L l, Shelisp.Object fun, Shelisp.Object args, [LispOptional] Shelisp.Object env, bool eval_args = true)
 		{
@@ -222,7 +242,9 @@ namespace Shelisp {
 			try {
 				Shelisp.Object rv = L.Qnil;
 				foreach (var form in (List)body) {
+					eval_depth += 2;
 					rv = form.Eval (l, lexenv);
+					eval_depth -= 2;
 				}
 
 				return rv;
@@ -267,11 +289,26 @@ namespace Shelisp {
 		public override string ToString()
 		{
 			StringBuilder sb = new StringBuilder ();
-			sb.Append("( ");
-			foreach (var el in this) {
-				sb.Append (el.ToString());
-				sb.Append (" ");
-			}
+			sb.Append("(");
+			Shelisp.Object el = this;
+			do {
+				Shelisp.Object car = L.CAR(el);
+				Shelisp.Object cdr = L.CDR(el);
+
+				sb.Append (car.ToString());
+				if (L.NILP (cdr))
+					break;
+				else {
+					if (!L.CONSP (cdr)) {
+						sb.AppendFormat (" . {0}", cdr);
+					}
+					else {
+						sb.Append (" ");
+					}
+				}
+				el = cdr;
+			} while (L.CONSP (el));
+
 			sb.Append (")");
 			return sb.ToString();
 		}
@@ -307,7 +344,6 @@ namespace Shelisp {
 		[LispBuiltin]
 		public static Shelisp.Object Fcons (L l, Shelisp.Object car, Shelisp.Object cdr)
 		{
-			Console.WriteLine ("car = {0}, cdr = {1}", car, cdr);
 			return new List (car, cdr);
 		}
 

@@ -439,12 +439,30 @@ namespace Shelisp {
 
 			List<Shelisp.Object> objs = new List<Shelisp.Object>();
 			Shelisp.Object obj;
+			bool dot_seen = false;
+			bool el_after_dot = false;
 			while ((obj = Read (s, ')')) != null) {
+				if (obj.LispEq (L.intern("."))) {
+					if (dot_seen)
+						throw new LispInvalidReadSyntaxException (". in wrong context");
+					dot_seen = true;
+					continue;
+				}
+				else if (dot_seen) {
+					if (el_after_dot)
+						throw new LispInvalidReadSyntaxException (". in wrong context");
+					el_after_dot = true;
+				}
 				Debug.Print ("+ {0}", obj);
 				objs.Add (obj);
 			}
 
-			var rv = L.make_list (objs.ToArray());
+			Shelisp.Object rv;
+			if (dot_seen)
+				rv = L.make_list_atom_tail (objs.ToArray());
+			else
+				rv = L.make_list (objs.ToArray());
+
 			Debug.Print ("ReadList returning {0}", rv);
 			return rv;
 		}
