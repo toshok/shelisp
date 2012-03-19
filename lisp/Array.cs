@@ -4,22 +4,31 @@ using System.Collections.Generic;
 
 namespace Shelisp {
 	public abstract class Array : Sequence {
+		public override int GetHashCode ()
+		{
+			int hash = Length;
+			foreach (var o in this) {
+				hash = hash * 16 + o.GetHashCode();
+			}
+			return hash;
+		}
+
 		public abstract Shelisp.Object this[int index] { get; set; }
 
-		[LispBuiltin ("arrayp", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Farrayp(L l, Shelisp.Object o)
 		{
 			return (o is Array) ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("aref", MinArgs = 2)]
-		public static Shelisp.Object Farrayp(L l, Shelisp.Object arr, Shelisp.Object idx)
+		[LispBuiltin]
+		public static Shelisp.Object Faref(L l, Shelisp.Object arr, Shelisp.Object idx)
 		{
 			// XXX type checks
 			return ((Array)arr)[(int)(Number)idx];
 		}
 
-		[LispBuiltin ("aset", MinArgs = 3)]
+		[LispBuiltin]
 		public static Shelisp.Object Faset(L l, Shelisp.Object sym, Shelisp.Object idx, Shelisp.Object val)
 		{
 			if (sym is Vector) {
@@ -33,7 +42,7 @@ namespace Shelisp {
 			}
 		}
 
-		[LispBuiltin ("fillarray", MinArgs = 2)]
+		[LispBuiltin]
 		public static Shelisp.Object Ffillarray(L l, Shelisp.Object arr, Shelisp.Object val)
 		{
 			// XXX type checks

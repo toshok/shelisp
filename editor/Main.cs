@@ -26,7 +26,7 @@ namespace Shemacs.Editor {
 				FileIO.Fload_file (l, "loadup.el");
 			}
 			catch (Exception e) {
-				Console.WriteLine ("failed {0}", e);
+				Console.WriteLine ("failed due to toplevel elisp error {0}", e);
 			}
 		}
 	}

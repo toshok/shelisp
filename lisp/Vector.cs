@@ -46,19 +46,19 @@ namespace Shelisp {
 			return sb.ToString();
 		}
 
-		[LispBuiltin ("vectorp", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fvectorp(L l, Shelisp.Object o)
 		{
 			return (o is Vector) ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("vector", MinArgs = 0)]
+		[LispBuiltin]
 		public static Shelisp.Object Fvector (L l, params Shelisp.Object[] args)
 		{
 			return new Vector (args);
 		}
 
-		[LispBuiltin ("make-vector", MinArgs = 2)]
+		[LispBuiltin]
 		public static Shelisp.Object Fmake_vector (L l, Shelisp.Object length, Shelisp.Object val)
 		{
 			Shelisp.Object[] vals = new Shelisp.Object[(int)(Number)length];
@@ -67,7 +67,7 @@ namespace Shelisp {
 			return new Vector (vals);
 		}
 
-		[LispBuiltin ("vconcat", MinArgs = 0)]
+		[LispBuiltin]
 		public static Shelisp.Object Fvconcat (L l, params Shelisp.Object[] args)
 		{
 			throw new NotImplementedException ();

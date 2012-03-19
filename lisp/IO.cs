@@ -5,8 +5,8 @@ using System.Text;
 
 namespace Shelisp {
 	public class IO {
-		[LispBuiltin ("format-.net", MinArgs = 1)]
-		public static Shelisp.Object Fprint_format(L l, Shelisp.Object format, params Shelisp.Object[] args)
+		[LispBuiltin]
+		public static Shelisp.Object Fformat_dotnet(L l, Shelisp.Object format, params Shelisp.Object[] args)
 		{
 			switch (args.Length) {
 			case 0: return new Shelisp.String (string.Format ((Shelisp.String)format));
@@ -25,45 +25,58 @@ namespace Shelisp {
 			}
 		}
 
-		[LispBuiltin ("print", MinArgs = 1)]
-		public static Shelisp.Object Fprint(L l, Shelisp.Object obj, Shelisp.Object stream)
+		[LispBuiltin]
+		public static Shelisp.Object Fformat(L l, Shelisp.Object format, params Shelisp.Object[] args)
 		{
-			Console.WriteLine (obj.ToString());
+			return Format.CFormat ((Shelisp.String)format, args);
+		}
+
+		[LispBuiltin]
+		public static Shelisp.Object Fprint(L l, Shelisp.Object obj, [LispOptional] Shelisp.Object stream)
+		{
+			Console.WriteLine (obj.ToString("prin1"));
 			return obj;
 		}
 
-		[LispBuiltin ("message", MinArgs = 1)]
+		[LispBuiltin]
+		public static Shelisp.Object Fprin1(L l, Shelisp.Object obj, [LispOptional] Shelisp.Object stream)
+		{
+			Console.Write (obj.ToString("prin1"));
+			return obj;
+		}
+
+		[LispBuiltin]
+		public static Shelisp.Object Fprinc(L l, Shelisp.Object obj, [LispOptional] Shelisp.Object stream)
+		{
+			Console.Write (obj.ToString("princ"));
+			return obj;
+		}
+
+		[LispBuiltin]
+		public static Shelisp.Object Fterpri(L l, [LispOptional] Shelisp.Object stream)
+		{
+			Console.WriteLine ();
+			return L.Qt;
+
+		}
+
+		[LispBuiltin]
+		public static Shelisp.Object Fwrite_char(L l, Shelisp.Object ch, [LispOptional] Shelisp.Object stream)
+		{
+			Console.Write ((char)Number.ToInt(ch));
+			return ch;
+		}
+
+		[LispBuiltin]
 		public static Shelisp.Object Fmessage (L l, Shelisp.Object format, params Shelisp.Object[] args)
 		{
+			var output = format;
 			if (format is Shelisp.String) {
-				int arg_num = 0;
-				StringBuilder sb = new StringBuilder ();
-				string format_s = (string)(Shelisp.String)format;
-				for (int i = 0; i < format_s.Length; i ++) {
-					if (format_s[i] == '%') {
-						char specifier = format_s[++i];
-						switch (specifier) {
-						case '%':
-							sb.Append ('%');
-							break;
-						case 's':
-							sb.Append (args[arg_num++].ToString());
-							break;
-						default:
-							throw new Exception (string.Format ("format {0} unsupported", specifier));
-						}
-					}
-					else {
-						sb.Append (format_s[i]);
-					}
-				}
-				Console.WriteLine (sb.ToString());
-			}
-			else {
-				Console.WriteLine (format);
+				output = Format.CFormat ((Shelisp.String)format, args);
 			}
 
-			return L.Qnil;
+			Console.WriteLine (output.ToString("princ"));
+			return output;
 		}
 	}
 }

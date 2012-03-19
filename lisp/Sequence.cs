@@ -11,13 +11,38 @@ namespace Shelisp {
 			return GetEnumerator();
 		}
 
-		[LispBuiltin ("sequencep", MinArgs = 1)]
+		public override bool LispEqual (Shelisp.Object other)
+		{
+			// is this right?  can lists be equal to vectors if the elements are the same?
+			if (other.GetType() != this.GetType()) {
+				return false;
+			}
+
+			IEnumerator<Shelisp.Object> this_enum = this.GetEnumerator();
+			IEnumerator<Shelisp.Object> other_enum = ((Sequence)other).GetEnumerator();
+
+			while (this_enum.MoveNext()) {
+				if (!other_enum.MoveNext())
+					return false;
+
+				if (!this_enum.Current.LispEqual (other_enum.Current))
+				    return false;
+			}
+
+			if (other_enum.MoveNext()) // there are more items left in other_enum
+				return false;
+
+			return true;
+		}
+
+
+		[LispBuiltin]
 		public static Shelisp.Object Fsequencep(L l, Shelisp.Object o)
 		{
 			return (o is Sequence) ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("elt", MinArgs = 2)]
+		[LispBuiltin]
 		public static Shelisp.Object Felt(L l, Shelisp.Object seq, Shelisp.Object index)
 		{
 			if (L.Qnil.LispEq (seq))
@@ -30,13 +55,13 @@ namespace Shelisp {
 			return L.Qnil;
 		}
 
-		[LispBuiltin ("nth", MinArgs = 2)]
+		[LispBuiltin]
 		public static Shelisp.Object Fnth(L l, Shelisp.Object index, Shelisp.Object seq)
 		{
 			return Sequence.Felt (l, seq, index);
 		}
 
-		[LispBuiltin ("length", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Flength(L l, Shelisp.Object o)
 		{
 			if (L.NILP (o))
@@ -49,14 +74,14 @@ namespace Shelisp {
 			return seq.Length;
 		}
 
-		[LispBuiltin ("copy-sequence", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fcopy_sequence(L l, Shelisp.Object seq)
 		{
 			// XXX bad bad bad
 			return seq;
 		}
 
-		[LispBuiltin ("mapcar", MinArgs = 2)]
+		[LispBuiltin]
 		public static Shelisp.Object Fmapcar(L l, Shelisp.Object fun, Shelisp.Object seq)
 		{
 			if (L.Qnil.LispEq (seq))
@@ -74,7 +99,7 @@ namespace Shelisp {
 			return new List (mapped.ToArray());
 		}
 
-		[LispBuiltin ("mapc", MinArgs = 2)]
+		[LispBuiltin]
 		public static Shelisp.Object Fmapc(L l, Shelisp.Object fun, Shelisp.Object seq)
 		{
 			if (L.Qnil.LispEq (seq))
@@ -91,7 +116,7 @@ namespace Shelisp {
 			return seq;
 		}
 
-		[LispBuiltin ("append", MinArgs = 0)]
+		[LispBuiltin]
 		public static Shelisp.Object Fappend (L l, params Shelisp.Object[] sequences)
 		{
 			if (sequences.Length == 0)

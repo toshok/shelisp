@@ -18,7 +18,7 @@ namespace Shelisp {
 
 		private Object obj;
 
-		[LispBuiltin ("quote", MinArgs = 1, Unevalled = true)]
+		[LispBuiltin (Unevalled = true)]
 		public static Shelisp.Object Fquote (L l, Shelisp.Object obj)
 		{
 			return obj;

@@ -1,3 +1,4 @@
+using System;
 namespace Shelisp {
 	public class Object {
 		public Object ()
@@ -11,7 +12,18 @@ namespace Shelisp {
 
 		public override string ToString ()
 		{
-			return description ?? base.ToString();
+			return ToString ("prin1");
+		}
+
+		public virtual string ToString(string format_type)
+		{
+			switch (format_type) {
+			case "prin1":
+			case "princ":
+				return description ?? base.ToString();
+			default:
+				throw new NotSupportedException (string.Format ("unsupported format type `{0}'", format_type));
+			}
 		}
 
 		private string description;
@@ -23,6 +35,12 @@ namespace Shelisp {
 		}
 
 		public virtual bool LispEq (Shelisp.Object other)
+		{
+			// default implementation only tests for reference equality
+			return object.ReferenceEquals (this, other);
+		}
+
+		public virtual bool LispEql (Shelisp.Object other)
 		{
 			// default implementation only tests for reference equality
 			return object.ReferenceEquals (this, other);
@@ -74,7 +92,7 @@ namespace Shelisp {
 			return new String(str);
 		}
 
-		[LispBuiltin ("eq", MinArgs = 2)]
+		[LispBuiltin]
 		public static Shelisp.Object Feq (L l, Shelisp.Object o1, Shelisp.Object o2)
 		{
 			if (L.NILP(o1))
@@ -83,7 +101,16 @@ namespace Shelisp {
 			return o1.LispEq (o2) ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("equal", MinArgs = 2)]
+		[LispBuiltin]
+		public static Shelisp.Object Feql (L l, Shelisp.Object o1, Shelisp.Object o2)
+		{
+			if (L.NILP(o1))
+				return L.NILP(o2) ? L.Qt : L.Qnil;
+
+			return o1.LispEql (o2) ? L.Qt : L.Qnil;
+		}
+
+		[LispBuiltin]
 		public static Shelisp.Object Fequal (L l, Shelisp.Object o1, Shelisp.Object o2)
 		{
 			if (L.NILP(o1))

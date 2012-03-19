@@ -183,6 +183,29 @@ namespace Shelisp {
 						return new List (L.intern ("`"), new List (Read(s, valid_end), L.Qnil));
 					}
 				}
+				// the following two cases should only work inside backquoted forms
+				else if (ch == '@') {
+					if (sb.Length > 0) {
+						return ReadSymbolLikeThing (sb.ToString());
+					}
+					else {
+						s.Read(); // consume the @
+						goto start;
+					}
+				}
+				else if (ch == ',') {
+					if (sb.Length == 1 && sb[0] == '@') {
+						s.Read(); // consume the comma and recurse
+						return new List (L.intern ("@,"), new List (Read(s, valid_end), L.Qnil));
+					}
+					if (sb.Length > 0) {
+						return ReadSymbolLikeThing (sb.ToString());
+					}
+					else {
+						s.Read(); // consume the comma and recurse
+						return new List (L.intern (","), new List (Read(s, valid_end), L.Qnil));
+					}
+				}
 				else {
 					sb.Append ((char)s.Read());
 					goto start;
@@ -210,7 +233,7 @@ namespace Shelisp {
 			if (Char.IsWhiteSpace(ch) || ch == ')' || ch == ']')
 				return value;
 			
-			throw new Exception ("(invalid-read-syntax ?)");
+			throw new LispInvalidReadSyntaxException ("?");
 		}
 
 		static int ReadHexNumber (TextReader s)
@@ -444,11 +467,11 @@ namespace Shelisp {
 			return rv;
 		}
 
-		[LispBuiltin ("read", MinArgs = 0)]
-		public static Shelisp.Object Fread (L l, Shelisp.Object stream)
+		[LispBuiltin]
+		public static Shelisp.Object Fread (L l, [LispOptional] Shelisp.Object stream)
 		{
 #if notyet
-			if (stream == null || L.NILP (stream))
+			if (L.NILP (stream))
 				stream = standard_input.Eval(); // standard-input is a variable that by default is 't', so the minibuffer
 
 			if (stream is Buffer)
@@ -467,8 +490,8 @@ namespace Shelisp {
 		}
 
 #if false
-		[LispBuiltin ("read-from-string", MinArgs = 1)]
-		public static Shelisp.Object Fread_from_string (L l, Shelisp.Object str, Shelisp.Object start, Shelisp.Object end)
+		[LispBuiltin]
+		public static Shelisp.Object Fread_from_string (L l, Shelisp.Object str, [LispOptional] Shelisp.Object start, Shelisp.Object end)
 		{
 			if (!(str is String))
 				throw new WrongTypeArgumentException ("stringp", str);

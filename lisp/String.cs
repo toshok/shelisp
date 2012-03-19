@@ -10,6 +10,13 @@ namespace Shelisp {
 			this.native_string = new StringBuilder(s);
 		}
 
+		public override bool LispEqual (Shelisp.Object other)
+		{
+			if (!(other is String))
+				return false;
+			return this.native_string.ToString() == ((String)other).native_string.ToString();
+		}
+
 		public StringBuilder native_string;
 
 		public override int Length {
@@ -28,9 +35,21 @@ namespace Shelisp {
 				yield return native_string[i];
 		}
 
-		public override string ToString ()
+		public override int GetHashCode ()
 		{
-			return string.Concat ("\"", native_string.ToString(), "\"");
+			return native_string.ToString().GetHashCode();
+		}
+
+		public override string ToString (string format_type)
+		{
+			switch (format_type) {
+			case "princ":
+				return native_string.ToString();
+			case "prin1":
+				return string.Concat ("\"", native_string.ToString(), "\"");
+			default:
+				throw new NotSupportedException (string.Format ("unsupported format type `{0}'", format_type));
+			}
 		}
 
 		public static implicit operator System.String (String str)
@@ -38,19 +57,19 @@ namespace Shelisp {
 			return str.native_string.ToString();
 		}
 
-		[LispBuiltin ("string-match", MinArgs = 2)]
-		public static Shelisp.Object Fstring_match(L l, Shelisp.Object regex, Shelisp.Object str, Shelisp.Object start)
+		[LispBuiltin]
+		public static Shelisp.Object Fstring_match(L l, Shelisp.Object regex, Shelisp.Object str, [LispOptional] Shelisp.Object start)
 		{
 			if (!(regex is Shelisp.String))
 				throw new WrongTypeArgumentException ("stringp", regex);
 			if (!(str is Shelisp.String))
 				throw new WrongTypeArgumentException ("stringp", str);
-			if ((start != null) && !(start is Shelisp.Number && ((Shelisp.Number)start).boxed is int))
+			if (!L.NILP(start) && !Number.IsInt(start))
 				throw new WrongTypeArgumentException ("integerp", start);
 
 			string regex_s = (string)(String)regex;
 			string str_s = (string)(String)str;
-			int start_i = start == null ? 0 : (int)((Shelisp.Number)start).boxed;
+			int start_i = L.NILP(start) ? 0 : (int)((Shelisp.Number)start).boxed;
 
 
 			regex_s = regex_s.Replace ("\\(", "OMGOPENPAREN").Replace ("(", "\\(").Replace ("OMGOPENPAREN", "(");
@@ -60,7 +79,13 @@ namespace Shelisp {
 
 			var match = re.Match (str_s, start_i);
 
-			L.current_match = match;
+			int[] match_data = new int[match.Groups.Count * 2];
+			for (int i = 0; i < match.Groups.Count; i ++) {
+				match_data[i*2] = match.Groups[i].Index;
+				match_data[i*2 + 1] = match.Groups[i].Index + match.Groups[i].Length;
+			}
+
+			L.match_data = match_data;
 
 			if (match == null || match.Groups.Count == 0) {
 				return L.Qnil;
@@ -70,54 +95,79 @@ namespace Shelisp {
 			}
 		}
 
-		[LispBuiltin ("match-end", MinArgs = 1)]
-		public static Shelisp.Object Fmatch_end (L l, Shelisp.Object idx, Shelisp.Object str)
+		[LispBuiltin]
+		public static Shelisp.Object Fmatch_data (L l)
 		{
-			if (idx != null && !(idx is Shelisp.Number && ((Shelisp.Number)idx).boxed is int))
+			if (L.match_data == null)
+				return L.Qnil;
+
+			return L.int_array_to_list (L.match_data);
+		}
+
+		[LispBuiltin]
+		public static Shelisp.Object Fset_match_data (L l, Shelisp.Object data)
+		{
+			if (!L.LISTP(data))
+				throw new WrongTypeArgumentException ("listp", data);
+
+			if (L.NILP (data))
+				L.match_data = null;
+			
+			List data_l = (List)data;
+			L.match_data = new int[data_l.Length];
+			int i = 0;
+			foreach (var item in data_l)
+				L.match_data[i++] = (int)(Number)item;
+
+			return data;
+		}
+
+		[LispBuiltin]
+		public static Shelisp.Object Fmatch_end (L l, Shelisp.Object idx, [LispOptional] Shelisp.Object str)
+		{
+			if (!L.NILP(idx) && !Number.IsInt(idx))
 				throw new WrongTypeArgumentException ("integerp", idx);
 
 			int idx_i = (int)((Shelisp.Number)idx).boxed;
 
-			var match = L.current_match;
-			if (match == null)
+			if (L.match_data == null)
 				return L.Qnil;
 
-			return idx_i >= match.Groups.Count ? L.Qnil : new Shelisp.Number (match.Groups[idx_i].Index + match.Groups[idx_i].Length);
+			return idx_i > L.match_data.Length/2 ? L.Qnil : new Shelisp.Number (L.match_data[idx_i * 2 + 1]);
 		}
 
-		[LispBuiltin ("match-beginning", MinArgs = 1)]
-		public static Shelisp.Object Fmatch_beginning (L l, Shelisp.Object idx, Shelisp.Object str)
+		[LispBuiltin]
+		public static Shelisp.Object Fmatch_beginning (L l, Shelisp.Object idx, [LispOptional] Shelisp.Object str)
 		{
-			if (idx != null && !(idx is Shelisp.Number && ((Shelisp.Number)idx).boxed is int))
+			if (!L.NILP(idx) && !Number.IsInt(idx))
 				throw new WrongTypeArgumentException ("integerp", idx);
 
 			int idx_i = (int)((Shelisp.Number)idx).boxed;
 
-			var match = L.current_match;
-			if (match == null)
+			if (L.match_data == null)
 				return L.Qnil;
 
-			return idx_i >= match.Groups.Count ? L.Qnil : new Shelisp.Number (match.Groups[idx_i].Index);
+			return idx_i > L.match_data.Length/2 ? L.Qnil : new Shelisp.Number (L.match_data[idx_i * 2]);
 		}
 
-		[LispBuiltin ("substring", MinArgs = 2)]
-		public static Shelisp.Object Fsubstring (L l, Shelisp.Object str, Shelisp.Object start, Shelisp.Object end)
+		[LispBuiltin]
+		public static Shelisp.Object Fsubstring (L l, Shelisp.Object str, Shelisp.Object start, [LispOptional] Shelisp.Object end)
 		{
 			if (!(str is Shelisp.String))
 				throw new WrongTypeArgumentException ("stringp", str);
-			if (!(start is Shelisp.Number && ((Shelisp.Number)start).boxed is int))
+			if (!Number.IsInt(start))
 				throw new WrongTypeArgumentException ("integerp", start);
-			if (end != null && !(end is Shelisp.Number && ((Shelisp.Number)end).boxed is int))
+			if (!L.NILP(end) && !Number.IsInt(end))
 				throw new WrongTypeArgumentException ("integerp", end);
 
 			string str_s = (string)(Shelisp.String)str;
 			int start_i = (int)((Shelisp.Number)start).boxed;
-			int end_i = end == null ? -1 : (int)((Shelisp.Number)end).boxed;
+			int end_i = L.NILP(end) ? -1 : (int)((Shelisp.Number)end).boxed;
 
 			return (Shelisp.String)str_s.Substring (start_i, end_i - start_i);
 		}
 
-		[LispBuiltin ("string-to-number", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fstring_to_number(L l, Shelisp.Object str)
 		{
 			if (!(str is Shelisp.String))
@@ -135,14 +185,14 @@ namespace Shelisp {
 			throw new Exception (string.Format ("failed to parse string '{0}'", s));
 		}
 
-		[LispBuiltin ("string-to-multibyte", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fstring_to_multibyte (L l, Shelisp.Object str)
 		{
 			Console.WriteLine ("string-to-multibyte not implemented");
 			return str;
 		}
 
-		[LispBuiltin ("string-equal", MinArgs = 2)]
+		[LispBuiltin]
 		public static Shelisp.Object Fstring_equal(L l, Shelisp.Object str1, Shelisp.Object str2)
 		{
 			if (!(str1 is Shelisp.String && str2 is Shelisp.String))
@@ -151,26 +201,66 @@ namespace Shelisp {
 			return (string)(Shelisp.String)str1 == (string)(Shelisp.String)str2 ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("concat")]
+		[LispBuiltin]
 		public static Shelisp.Object Fconcat(L l, params Shelisp.Object[] seqs)
 		{
 			// XXX
 			return seqs[0];
 		}
 
-		[LispBuiltin ("stringp")]
-		public static Shelisp.Object Fconcat(L l, Shelisp.Object str)
+		[LispBuiltin]
+		public static Shelisp.Object Fstringp(L l, Shelisp.Object str)
 		{
 			return str is Shelisp.String ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("propertize", MinArgs = 1)]
+		[LispBuiltin]
+		public static Shelisp.Object Fmultibyte_string_p(L l, Shelisp.Object str)
+		{
+			// XXX
+			return str is Shelisp.String ? L.Qt : L.Qnil;
+		}
+
+		[LispBuiltin]
 		public static Shelisp.Object Fpropertize(L l, Shelisp.Object str, params Shelisp.Object[] propvals)
 		{
 			Console.WriteLine ("propertize not implemented");
 			return str;
 		}
 
+		[LispBuiltin]
+		public static Shelisp.Object Fre_search_forward (L l, Shelisp.Object regexp, [LispOptional] Shelisp.Object bound, Shelisp.Object noerror, Shelisp.Object count)
+		{
+			Console.WriteLine ("re-search-forward not implemented");
+			return L.Qnil;
+		}
+
+		[LispBuiltin]
+		public static Shelisp.Object Fre_search_backward (L l, Shelisp.Object regexp, [LispOptional] Shelisp.Object bound, Shelisp.Object noerror, Shelisp.Object count)
+		{
+			Console.WriteLine ("re-search-backward not implemented");
+			return L.Qnil;
+		}
+
+		[LispBuiltin]
+		public static Shelisp.Object Fchar_to_string (L l, Shelisp.Object ch)
+		{
+			string str = new string ((char)(int)(Shelisp.Number)ch, 1);
+			
+			return (Shelisp.String)str;
+		}
+
+
+		[LispBuiltin (DocString = @"Convert argument to capitalized form and return that.
+This means that each word's first character is upper case
+and the rest is lower case.
+The argument may be a character or string.  The result has the same type.
+The argument object is not altered--the value is a copy.")]
+		public static Shelisp.Object Fcapitalize (L l, Shelisp.Object obj)
+		{
+			// XXX this doesn't just apply to strings..
+			return obj;
+		}
 	}
 
 }

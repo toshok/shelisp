@@ -23,8 +23,14 @@ namespace Shelisp {
 
 		public Object Call (L l, Object[] args)
 		{
-			if (args.Length < min_args)
+			if (args.Length < min_args) {
+				Console.WriteLine (this);
+				foreach (var arg in args) {
+					Console.WriteLine (" + {0}", arg);
+				}
+
 				throw new ArgumentException ("arg length");
+			}
 
 			var parameters = method.GetParameters();
 
@@ -34,6 +40,8 @@ namespace Shelisp {
 			int param_offset = has_params ? 2 : 1;
 
 			object[] method_args = new object[parameters.Length];
+			for (int i = 0; i < method_args.Length; i ++)
+				method_args[i] = L.Qnil;
 
 			method_args[0] = l;
 
@@ -55,12 +63,29 @@ namespace Shelisp {
  			try {
 				return (Object)method.Invoke (target, method_args);
  			}
- 			catch (Exception e) {
+			catch (ArgumentException e) {
+				Console.WriteLine ("exception invoking {0}", method.Name);
+ 				foreach (var arg in method_args) {
+					if (arg != null)
+						Console.WriteLine (" +{0} {1}", arg.GetType(), arg);
+				}
+				Console.WriteLine (e);
+				throw;
+			}
+ 			catch (TargetInvocationException e) {
+#if DEBUG
  				Console.WriteLine ("Exception raised while invoking {0}", this);
+				Console.WriteLine ("with parameters:");
+				foreach (var p in parameters)
+ 					Console.WriteLine (" +{0} {1}", p.ParameterType, p.Name);
  				Console.WriteLine ("with args:");
- 				foreach (var arg in args)
- 					Console.WriteLine (" +{0} {1}", arg.GetType(), arg);
- 				throw;
+ 				foreach (var arg in method_args) {
+					if (arg != null)
+						Console.WriteLine (" +{0} {1}", arg.GetType(), arg);
+				}
+				Console.WriteLine (e);
+#endif
+ 				throw e.InnerException;
  			}
 		}
 
@@ -73,7 +98,7 @@ namespace Shelisp {
 #endif
 		}
 
-		[LispBuiltin ("subrp", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fsubrp(L l, Shelisp.Object subr)
 		{
 			return (subr is Subr) ? L.Qt : L.Qnil;

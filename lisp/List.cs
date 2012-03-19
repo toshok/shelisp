@@ -5,23 +5,33 @@ using System.Text;
 
 namespace Shelisp {
 	public class List : Sequence {
-		public List (Object[] objs)
+		public List (params Object[] objs)
 		{
 			if (objs.Length == 0)
 				throw new Exception ("this ctor can only be used with arrays of length >= 1");
 			Object tail = L.Qnil;
 			for (int i = objs.Length - 1; i >= 1; i --)
-				tail = new List (objs[i], tail);
+				tail = new List (objs[i] ?? L.Qnil, tail);
 			cdr = tail;
-			car = objs[0];
+			car = objs[0] ?? L.Qnil;
 		}
 
 		public List (Object car, Object cdr)
 		{
 			this.car = car;
 			this.cdr = cdr;
+		}
 
-			length = 1 + (!L.LISTP(cdr) ? 0 : (L.NILP(cdr) ? 0 : ((List)cdr).Length));
+		public override int GetHashCode ()
+		{
+			int hash = 0;
+			foreach (var o in this) {
+				if (hash == 0)
+					hash = o.GetHashCode();
+				else
+					hash = hash * 16 + o.GetHashCode();
+			}
+			return hash;
 		}
 
 		public override Shelisp.Object Eval (L l, Shelisp.Object env = null)
@@ -73,26 +83,37 @@ namespace Shelisp {
 					else {
 						Debug.Print ("   evalled args");
 					}
-					foreach (var o in rest_list)
-						args[i++] = subr.unevalled ? o : o.Eval (l, env);
+					foreach (var o in rest_list) {
+						if (subr.unevalled) {
+							args[i++] = o;
+						}
+						else {
+							var evalled = o.Eval (l, env);
+							if (L.Qunbound.LispEq (evalled))
+								throw new Exception (string.Format ("form {0} evaluated to unbound.  this is NOT what you want", o));
+							args[i++] = evalled;
+						}
+					}
 				}
 
 				try {
 					return ((Subr)fun).Call (l, args);
 				}
 				catch {
-					Console.WriteLine ("at lisp {0}", fun);
+					Debug.Print ("at lisp {0}", fun);
 					throw;
 				}
 			}
 			else {
 				if (fun == null)
-					throw new Exception (string.Format ("(void-function {0})", first));
-				if (!L.LISTP (fun))
-					throw new Exception (string.Format ("(invalid-function {0})", first));
+					throw new LispVoidFunctionException (first);
+				if (!L.LISTP (fun)) {
+					Console.WriteLine (this);
+					throw new LispInvalidFunctionException (first);
+				}
 				Shelisp.Object funcar = L.CAR (fun);
 				if (!(funcar is Symbol))
-					throw new Exception (string.Format ("(invalid-function {0})", first));
+					throw new LispInvalidFunctionException (first);
 				if (funcar.LispEq (L.Qautoload)) {
 					FileIO.DoAutoload (l, fun, first);
 					goto retry;
@@ -106,28 +127,49 @@ namespace Shelisp {
 				else
 					xsignal1 (Qinvalid_function, original_fun);
 #else
-				if (funcar.LispEq (L.Qlambda)) {
-					return ApplyLambda (l, fun, rest, env);
+				if (funcar.LispEq (L.Qmacro)) {
+					Console.WriteLine ("evaluating macro, {0}, ", L.CDR(fun));
+					foreach (var r in (List)rest) {
+						Console.WriteLine ("arg: {0}", r);
+					}
+					var expanded = List.ApplyLambda (l, L.CDR(fun), rest, env, false);
+					Console.WriteLine ("returned {0}", expanded);
+					return expanded.Eval (l, env);
 				}
-				else if (funcar.LispEq (L.Qmacro)) {
-					return ApplyLambda (l, L.CDR(fun), rest, env, false).Eval (l, env);
+				if (funcar.LispEq (L.Qlambda)
+				    || funcar.LispEq (L.Qclosure)) {
+					return List.ApplyLambda (l, fun, rest, env);
 				}
-				else
-					throw new Exception (string.Format ("(invalid-function {0})", first));
+				else {
+					Console.WriteLine (this);
+					throw new LispInvalidFunctionException (first);
+				}
 #endif
 			}
 		}
 
-		public Shelisp.Object ApplyLambda (L l, Shelisp.Object lambda, Shelisp.Object args, Shelisp.Object env = null, bool eval_args = true)
+		public static Shelisp.Object ApplyLambda (L l, Shelisp.Object fun, Shelisp.Object args, [LispOptional] Shelisp.Object env, bool eval_args = true)
 		{
-			Debug.Print ("in ApplyLambda, lambda = {0}, args = {1}, eval_args = {2}", lambda, args, eval_args);
+// 			Console.WriteLine ("in ApplyLambda, fun = {0}, args = {1}, eval_args = {2}", fun, args, eval_args);
+// 			Console.WriteLine (Environment.StackTrace);
+
 			if (env == null) env = l.Environment;
 
-			Shelisp.Object rest = L.CDR (lambda); // get rid of the lambda
+			if (!L.CONSP(fun))
+				Console.WriteLine ("{0} is not a cons cell!  we're about to die!", fun);
+
+			if (L.CAR(fun).LispEq (L.Qclosure)) {
+				// this sets fun = ( environment args rest... ) where args rest... came from the original lambda.
+				// so the cdr below meant to skip the lambda actually skips the environment.
+				fun = L.CDR(fun);
+				env = L.CAR(fun);
+			}
+
+			Shelisp.Object rest = L.CDR (fun); // get rid of the lambda
 
 			Shelisp.Object arg_names = L.CAR(rest);
 
-			Shelisp.Object body = L.CAR (L.CDR (rest));
+			Shelisp.Object body = L.CDR (rest);
 
 			/* evaluate each of the arguments in the current environment, then add them to the environment and evaluate the body of the lambda */
 			Shelisp.Object lexenv = env;
@@ -178,25 +220,37 @@ namespace Shelisp {
 			l.Environment = lexenv;
 
 			try {
-				Shelisp.Object rv = body.Eval (l, lexenv);
-
-				l.Environment = old_env;
+				Shelisp.Object rv = L.Qnil;
+				foreach (var form in (List)body) {
+					rv = form.Eval (l, lexenv);
+				}
 
 				return rv;
 			}
-			catch (Exception e) {
-				Console.WriteLine ("at lisp {0}", body);
+			catch (Exception) {
+				Debug.Print ("at lisp {0}", body);
 				throw;
 			}
-
+			finally {
+				l.Environment = old_env;
+			}
 		}
 
 		public Object car;
 		public Object cdr;
 
-		int length;
 		public override int Length {
-			get { return length; }
+			get {
+				Shelisp.Object tail = this;
+				int length = 0;
+				while (L.CONSP (tail)) {
+					length++;
+					if (!L.CONSP (((List)tail).cdr))
+						break;
+					tail = ((List)tail).cdr;
+				}
+				return length;
+			}
 		}
 
 		public override IEnumerator<Shelisp.Object> GetEnumerator ()
@@ -222,13 +276,13 @@ namespace Shelisp {
 			return sb.ToString();
 		}
 
-		[LispBuiltin ("list", MinArgs = 0)]
+		[LispBuiltin]
 		public static Shelisp.Object Flist (L l, params Shelisp.Object[] rest)
 		{
 			return new List (rest);
 		}
 
-		[LispBuiltin ("nconc", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fnconc (L l, params Shelisp.Object[] rest)
 		{
 			if (rest.Length == 0)
@@ -250,44 +304,45 @@ namespace Shelisp {
 
 		}
 
-		[LispBuiltin ("cons", MinArgs = 2)]
+		[LispBuiltin]
 		public static Shelisp.Object Fcons (L l, Shelisp.Object car, Shelisp.Object cdr)
 		{
+			Console.WriteLine ("car = {0}, cdr = {1}", car, cdr);
 			return new List (car, cdr);
 		}
 
-		[LispBuiltin ("consp", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fconsp (L l, Shelisp.Object cons)
 		{
 			return L.CONSP(cons) ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("atom", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fatom (L l, Shelisp.Object cons)
 		{
 			return L.CONSP(cons) ? L.Qnil : L.Qt;
 		}
 
-		[LispBuiltin ("listp", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Flistp (L l, Shelisp.Object cons)
 		{
 			return L.LISTP(cons) ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("nlistp", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fnlistp (L l, Shelisp.Object cons)
 		{
 			return L.LISTP(cons) ? L.Qnil : L.Qt;
 		}
 
-		[LispBuiltin ("null", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fnull (L l, Shelisp.Object cons)
 		{
 			return L.NILP(cons) ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("member", MinArgs = 2)]
-		public static Shelisp.Object Fnull (L l, Shelisp.Object obj, Shelisp.Object list)
+		[LispBuiltin]
+		public static Shelisp.Object Fmember (L l, Shelisp.Object obj, Shelisp.Object list)
 		{
 			// check @list arg type
 			while (L.CONSP (list)) {
@@ -299,7 +354,7 @@ namespace Shelisp {
 			return L.Qnil;
 		}
 
-		[LispBuiltin ("cdr", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fcdr (L l, Shelisp.Object cons)
 		{
 			if (!L.LISTP (cons))
@@ -309,7 +364,7 @@ namespace Shelisp {
 			return L.CDR(cons);
 		}
 
-		[LispBuiltin ("car", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fcar (L l, Shelisp.Object cons)
 		{
 			if (!L.LISTP (cons))
@@ -319,10 +374,10 @@ namespace Shelisp {
 			return L.CAR(cons);
 		}
 
-		[LispBuiltin ("assq", MinArgs = 2)]
+		[LispBuiltin]
 		public static Shelisp.Object Fassq (L l, Shelisp.Object key, Shelisp.Object alist)
 		{
-			if (!L.LISTP(alist))
+			if (!L.CONSP(alist))
 				return L.Qnil;
 			//throw new WrongTypeArgumentException ("listp", alist);
 
@@ -338,7 +393,26 @@ namespace Shelisp {
 			return L.Qnil;
 		}
 
-		[LispBuiltin ("assoc", MinArgs = 2)]
+		[LispBuiltin]
+		public static Shelisp.Object Frassq (L l, Shelisp.Object key, Shelisp.Object alist)
+		{
+			if (!L.CONSP(alist))
+				return L.Qnil;
+			//throw new WrongTypeArgumentException ("listp", alist);
+
+			foreach (var el in L.CONS(alist)) {
+				if (!L.LISTP(el))
+					continue;
+				if (L.NILP(el))
+					break;
+				var cdr = L.CDR(el);
+				if (key.LispEq (cdr))
+					return el;
+			}
+			return L.Qnil;
+		}
+
+		[LispBuiltin]
 		public static Shelisp.Object Fassoc (L l, Shelisp.Object key, Shelisp.Object alist)
 		{
 			if (!L.LISTP(alist))
@@ -370,7 +444,7 @@ namespace Shelisp {
 			}
 		}
 
-		[LispBuiltin ("reverse", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Freverse (L l, Shelisp.Object alist)
 		{
 			if (!L.LISTP(alist))
@@ -379,16 +453,26 @@ namespace Shelisp {
 			return reverse ((Shelisp.List)alist, L.Qnil);
 		}
 
-		[LispBuiltin ("memq", MinArgs = 2)]
+		public static Shelisp.Object Memq (Shelisp.Object obj, Shelisp.Object alist)
+		{
+			Shelisp.Object tail = alist;
+
+			do {
+				if (obj.LispEq (L.CAR(tail)))
+					return tail;
+				tail = L.CDR(tail);
+			} while (L.CONSP (tail));
+
+			return L.Qnil;
+		}
+
+		[LispBuiltin]
 		public static Shelisp.Object Fmemq (L l, Shelisp.Object obj, Shelisp.Object alist)
 		{
 			if (!L.LISTP(alist))
 				throw new WrongTypeArgumentException ("listp", alist);
 
-			foreach (var el in (Shelisp.List)alist)
-				if (el.LispEq (obj))
-					return el;
-			return L.Qnil;
+			return L.NILP(alist) ? L.Qnil : Memq (obj, (Shelisp.List)alist);
 		}
 
 		static Shelisp.Object delq (Shelisp.Object obj, Shelisp.List alist)
@@ -407,10 +491,10 @@ namespace Shelisp {
 			}
 		}
 
-		[LispBuiltin ("delq", MinArgs = 2)]
+		[LispBuiltin]
 		public static Shelisp.Object Fdelq (L l, Shelisp.Object obj, Shelisp.Object alist)
 		{
-			if (!L.LISTP(alist))
+			if (!L.CONSP(alist))
 				return L.Qnil;
 			//throw new WrongTypeArgumentException ("listp", alist);
 
@@ -418,12 +502,12 @@ namespace Shelisp {
 		}
 
 
-		[LispBuiltin ("nthcdr", MinArgs = 2)]
+		[LispBuiltin]
 		public static Shelisp.Object Fnthcdr (L l, Shelisp.Object n, Shelisp.Object alist)
 		{
 			if (!L.LISTP(alist))
 				throw new WrongTypeArgumentException ("listp", alist);
-			if (!(n is Number) || !(((Number)n).boxed is int))
+			if (!Number.IsInt (n))
 				throw new WrongTypeArgumentException ("integerp", n);
 
 			int n_i = (int)((Number)n).boxed;
@@ -443,8 +527,8 @@ namespace Shelisp {
 			return alist;
 		}
 
-		[LispBuiltin ("safe-length", MinArgs = 1)]
-		public static Shelisp.Object Fnthcdr (L l, Shelisp.Object alist)
+		[LispBuiltin]
+		public static Shelisp.Object Fsafe_length (L l, Shelisp.Object alist)
 		{
 			if (!L.CONSP(alist))
 				return L.Qnil;
@@ -461,6 +545,31 @@ namespace Shelisp {
 
 			return new Number(conses.Keys.Count);
 		}
+
+		[LispBuiltin (DocString = "Set the cdr of CELL to be NEWCDR.  Returns NEWCDR.")]
+		public static Shelisp.Object Fsetcdr (L l, Shelisp.Object cell, Shelisp.Object newcdr)
+		{
+			((List)cell).cdr = newcdr;
+			return newcdr;
+		}
+
+		/// XXX these shouldn't be necessary...
+		[LispBuiltin]
+		public static Shelisp.Object Fcadr (L l, Shelisp.Object list)
+		{
+			if (L.NILP (list))
+				return L.Qnil;
+			return L.CAR(L.CDR(list));
+		}
+
+		[LispBuiltin (DocString = @"*Limit on depth in `eval', `apply' and `funcall' before error.
+
+This limit serves to catch infinite recursions for you before they cause
+actual stack overflow in C, which would be fatal for Emacs.
+You can safely make it considerably larger than its default value,
+if that proves inconveniently small.  However, if you increase it too far,
+Emacs could overflow the real C stack, and crash.")]
+		public static int max_lisp_eval_depth = 600;
 	}
 
 }

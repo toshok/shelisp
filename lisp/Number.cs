@@ -17,23 +17,59 @@ namespace Shelisp {
 
 		public override bool LispEq (Shelisp.Object other)
 		{
-			if (!(other is Number))
-				return false;
-			// lisp numbers are eq if their values are equal
-			return ((Shelisp.Number)other).boxed == boxed;
+			return this.LispEql (other);
 		}
 
 		public override bool LispEqual (Shelisp.Object other)
 		{
+			return this.LispEql (other);
+		}
+
+		public override bool LispEql (Shelisp.Object other)
+		{
 			if (!(other is Number))
 				return false;
-			// lisp numbers are equal if their values are equal
-			return ((Shelisp.Number)other).boxed == boxed;
+
+			if (Number.IsInt (this) != Number.IsInt (other))
+				return false;
+
+			if (Number.IsInt (this)) {
+				return Number.ToInt (this) == Number.ToInt (other);
+			}
+			else {
+				return Number.ToFloat (this) == Number.ToFloat (other);
+			}
 		}
 
 		public object boxed;
 
-		public override string ToString()
+		public static bool IsInt (Shelisp.Object obj)
+		{
+			return (obj is Number) && ((Number)obj).boxed is int;
+		}
+
+		public static bool IsFloat (Shelisp.Object obj)
+		{
+			return (obj is Number) && ((Number)obj).boxed is float;
+		}
+
+		public static int ToInt (Shelisp.Object obj)
+		{
+			if (((Number)obj).boxed is int)
+				return (int)((Number)obj).boxed;
+			else
+				return (int)(float)((Number)obj).boxed;
+		}
+
+		public static float ToFloat (Shelisp.Object obj)
+		{
+			if (((Number)obj).boxed is float)
+				return (float)((Number)obj).boxed;
+			else
+				return (float)(int)((Number)obj).boxed;
+		}
+
+		public override string ToString(string format_type)
 		{
 			return boxed.ToString();
 		}
@@ -73,25 +109,25 @@ namespace Shelisp {
 			return (double)num.boxed;
 		}
 
-		[LispBuiltin ("numberp", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fnumberp (L l, Shelisp.Object num)
 		{
 			return (num is Number) ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("integerp", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fintegerp (L l, Shelisp.Object num)
 		{
 			return (num is Number && ((Number)num).boxed is int) ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("floatp", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Ffloatp (L l, Shelisp.Object num)
 		{
 			return (num is Number && ((Number)num).boxed is float) ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("<", MinArgs = 2)]
+		[LispBuiltin ("<")]
 		public static Shelisp.Object Fnumlt (L l, Shelisp.Object op1, Shelisp.Object op2)
 		{
 			if (!(op1 is Number)) throw new WrongTypeArgumentException ("numberp", op1);
@@ -109,7 +145,25 @@ namespace Shelisp {
 				return ((int)ln.boxed < (int)rn.boxed) ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin (">", MinArgs = 2)]
+		[LispBuiltin ("<=")]
+		public static Shelisp.Object Fnumle (L l, Shelisp.Object op1, Shelisp.Object op2)
+		{
+			if (!(op1 is Number)) throw new WrongTypeArgumentException ("numberp", op1);
+			if (!(op2 is Number)) throw new WrongTypeArgumentException ("numberp", op2);
+
+			Number ln = (Number)op1;
+			Number rn = (Number)op2;
+
+			bool need_float = (ln.boxed is float || rn.boxed is float);
+
+			if (need_float) {
+				return ((float)ln.boxed <= (float)rn.boxed) ? L.Qt : L.Qnil;
+			}
+			else
+				return ((int)ln.boxed <= (int)rn.boxed) ? L.Qt : L.Qnil;
+		}
+
+		[LispBuiltin (">")]
 		public static Shelisp.Object Fnumgt (L l, Shelisp.Object op1, Shelisp.Object op2)
 		{
 			if (!(op1 is Number)) throw new WrongTypeArgumentException ("numberp", op1);
@@ -127,7 +181,25 @@ namespace Shelisp {
 				return ((int)ln.boxed > (int)rn.boxed) ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("=", MinArgs = 2)]
+		[LispBuiltin (">=")]
+		public static Shelisp.Object Fnumge (L l, Shelisp.Object op1, Shelisp.Object op2)
+		{
+			if (!(op1 is Number)) throw new WrongTypeArgumentException ("numberp", op1);
+			if (!(op2 is Number)) throw new WrongTypeArgumentException ("numberp", op2);
+
+			Number ln = (Number)op1;
+			Number rn = (Number)op2;
+
+			bool need_float = (ln.boxed is float || rn.boxed is float);
+
+			if (need_float) {
+				return ((float)ln.boxed >= (float)rn.boxed) ? L.Qt : L.Qnil;
+			}
+			else
+				return ((int)ln.boxed >= (int)rn.boxed) ? L.Qt : L.Qnil;
+		}
+
+		[LispBuiltin ("=")]
 		public static Shelisp.Object Fnumequal (L l, Shelisp.Object op1, Shelisp.Object op2)
 		{
 			if (!(op1 is Number)) throw new WrongTypeArgumentException ("numberp", op1);
@@ -145,29 +217,7 @@ namespace Shelisp {
 				return ((int)ln.boxed == (int)rn.boxed) ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("eql", MinArgs = 2)]
-		public static Shelisp.Object Feql (L l, Shelisp.Object op1, Shelisp.Object op2)
-		{
-			if (!(op1 is Number)) throw new WrongTypeArgumentException ("numberp", op1);
-			if (!(op2 is Number)) throw new WrongTypeArgumentException ("numberp", op2);
-
-			Number ln = (Number)op1;
-			Number rn = (Number)op2;
-
-			bool types_match = (ln.boxed is float) == (rn.boxed is float);
-			if (!types_match)
-				return L.Qnil;
-
-			bool need_float = ln.boxed is float;
-
-			if (need_float) {
-				return ((float)ln.boxed == (float)rn.boxed) ? L.Qt : L.Qnil;
-			}
-			else
-				return ((int)ln.boxed == (int)rn.boxed) ? L.Qt : L.Qnil;
-		}
-
-		[LispBuiltin ("+", MinArgs = 2)]
+		[LispBuiltin ("+")]
 		public static Shelisp.Object Fadd (L l, Shelisp.Object op1, Shelisp.Object op2)
 		{
 			if (!(op1 is Number)) throw new WrongTypeArgumentException ("numberp", op1);
@@ -189,7 +239,7 @@ namespace Shelisp {
 				return new Number ((int)ln.boxed + (int)rn.boxed);
 		}
 
-		[LispBuiltin ("-", MinArgs = 2)]
+		[LispBuiltin ("-")]
 		public static Shelisp.Object Fsub (L l, Shelisp.Object op1, Shelisp.Object op2)
 		{
 			if (!(op1 is Number)) throw new WrongTypeArgumentException ("numberp", op1);
@@ -212,50 +262,61 @@ namespace Shelisp {
 		}
 
 		[LispBuiltin ("/", MinArgs = 2)]
-		public static Shelisp.Object Fdiv (L l, Shelisp.Object op1, Shelisp.Object op2)
+		public static Shelisp.Object Fdiv (L l, [LispRest] params Shelisp.Object[] operands)
 		{
-			if (!(op1 is Number)) throw new WrongTypeArgumentException ("numberp", op1);
-			if (!(op2 is Number)) throw new WrongTypeArgumentException ("numberp", op2);
+			bool use_float = false;
 
-			Number ln = (Number)op1;
-			Number rn = (Number)op2;
+			foreach (var operand in operands) {
+				if (!(operand is Number)) throw new WrongTypeArgumentException ("numberp", operand);
 
-			if (ln.boxed is float && rn.boxed is float) {
-				return new Number ((float)ln.boxed / (float)rn.boxed);
+				if (Number.IsFloat (operand))
+					use_float = true;
 			}
-			else if (ln.boxed is float) {
-				return new Number ((float)ln.boxed / (int)rn.boxed);
+
+			if (use_float) {
+				float result = Number.ToFloat (operands[0]);
+				for (int i = 1; i < operands.Length; i ++)
+					result /= Number.ToFloat (operands[i]);
+				return new Number (result);
 			}
-			else if (rn.boxed is float) {
-				return new Number ((int)ln.boxed / (float)rn.boxed);
+			else {
+				float result = Number.ToInt (operands[0]);
+				for (int i = 1; i < operands.Length; i ++) {
+					result /= Number.ToInt (operands[i]);
+					if (result == 0)
+						break;
+				}
+				return new Number (result);
 			}
-			else
-				return new Number ((int)ln.boxed / (int)rn.boxed);
 		}
 
-		[LispBuiltin ("*", MinArgs = 2)]
-		public static Shelisp.Object Fmul (L l, Shelisp.Object op1, Shelisp.Object op2)
+		[LispBuiltin ("*")]
+		public static Shelisp.Object Fmul (L l, [LispRest] params Shelisp.Object[] operands)
 		{
-			if (!(op1 is Number)) throw new WrongTypeArgumentException ("numberp", op1);
-			if (!(op2 is Number)) throw new WrongTypeArgumentException ("numberp", op2);
+			bool use_float = false;
 
-			Number ln = (Number)op1;
-			Number rn = (Number)op2;
+			foreach (var operand in operands) {
+				if (!(operand is Number)) throw new WrongTypeArgumentException ("numberp", operand);
 
-			if (ln.boxed is float && rn.boxed is float) {
-				return new Number ((float)ln.boxed * (float)rn.boxed);
+				if (Number.IsFloat (operand))
+					use_float = true;
 			}
-			else if (ln.boxed is float) {
-				return new Number ((float)ln.boxed * (int)rn.boxed);
+
+			if (use_float) {
+				float result = 1.0f;
+				foreach (var operand in operands)
+					result *= Number.ToFloat (operand);
+				return new Number (result);
 			}
-			else if (rn.boxed is float) {
-				return new Number ((int)ln.boxed * (float)rn.boxed);
+			else {
+				int result = 1;
+				foreach (var operand in operands)
+					result *= Number.ToInt (operand);
+				return new Number (result);
 			}
-			else
-				return new Number ((int)ln.boxed * (int)rn.boxed);
 		}
 
-		[LispBuiltin ("1+", MinArgs = 1)]
+		[LispBuiltin ("1+")]
 		public static Shelisp.Object Finc (L l, Shelisp.Object op)
 		{
 			if (!(op is Number)) throw new WrongTypeArgumentException ("numberp", op);
@@ -271,7 +332,7 @@ namespace Shelisp {
 				return new Number ((int)ln.boxed + 1);
 		}
 
-		[LispBuiltin ("1-", MinArgs = 1)]
+		[LispBuiltin ("1-")]
 		public static Shelisp.Object Fdec (L l, Shelisp.Object op)
 		{
 			if (!(op is Number)) throw new WrongTypeArgumentException ("numberp", op);
@@ -287,17 +348,37 @@ namespace Shelisp {
 				return new Number ((int)ln.boxed - 1);
 		}
 	
-		[LispBuiltin ("logior", MinArgs = 0)]
+		[LispBuiltin]
 		public static Shelisp.Object Flogior (L l, params Shelisp.Object[] ints_or_markers)
 		{
 			int result = 0;
 			foreach (var obj in ints_or_markers) {
-				if (obj is Number && ((Number)obj).boxed is int) {
+				if (Number.IsInt(obj)) {
 					result |= (int)((Number)obj).boxed;
 				}
 #if EDITOR
 				else if (obj is Shelisp.Editor.Marker) {
 					result |= ((Marker)obj).Position;
+				}
+#endif
+				else {
+					throw new WrongTypeArgumentException ("int-or-marker-p", obj);
+				}
+			}
+			return new Number (result);
+		}
+
+		[LispBuiltin]
+		public static Shelisp.Object Flogand (L l, params Shelisp.Object[] ints_or_markers)
+		{
+			int result = 0;
+			foreach (var obj in ints_or_markers) {
+				if (Number.IsInt(obj)) {
+					result &= (int)((Number)obj).boxed;
+				}
+#if EDITOR
+				else if (obj is Shelisp.Editor.Marker) {
+					result &= ((Marker)obj).Position;
 				}
 #endif
 				else {

@@ -112,14 +112,14 @@ namespace Shemacs.Editor {
 
 	class Buffer : Shelisp.Object {
 		// XXX this should be a command
-		[LispBuiltin ("make-variable-buffer-local", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fmake_variable_buffer_local (L l, Shelisp.Object variable)
 		{
 			// XXX no-op for now
 			return variable;
 		}
 
-		[LispBuiltin ("buffer-live-p", MinArgs = 1, DocString = @"Return non-nil if OBJECT is a buffer which has not been killed.
+		[LispBuiltin (DocString = @"Return non-nil if OBJECT is a buffer which has not been killed.
 Value is nil if OBJECT is not a buffer or if it has been killed.")]
 		public static Shelisp.Object Fbuffer_live_p (L l, Shelisp.Object o)
 		{
@@ -141,7 +141,7 @@ Value is nil if OBJECT is not a buffer or if it has been killed.")]
 			return L.Qnil;
 		}
 
-		[LispBuiltin ("get-buffer", MinArgs = 1, DocString = @"Return the buffer named BUFFER-OR-NAME.
+		[LispBuiltin (DocString = @"Return the buffer named BUFFER-OR-NAME.
 BUFFER-OR-NAME must be either a string or a buffer.  If BUFFER-OR-NAME
 is a string and there is no buffer with that name, return nil.  If
 BUFFER-OR-NAME is a buffer, return it as given.")]
@@ -153,7 +153,7 @@ BUFFER-OR-NAME is a buffer, return it as given.")]
 			return List.Fcdr (l, assoc_ignore_text_properties (l, buffer_or_name, Buffer.Vbuffer_alist));
 		}
 
-		[LispBuiltin ("get-buffer-create", MinArgs = 1, DocString = @"Return the buffer specified by BUFFER-OR-NAME, creating a new one if needed.
+		[LispBuiltin (DocString = @"Return the buffer specified by BUFFER-OR-NAME, creating a new one if needed.
 If BUFFER-OR-NAME is a string and a live buffer with that name exists,
 return that buffer.  If no such buffer exists, create a new buffer with
 that name and return it.  If BUFFER-OR-NAME starts with a space, the new
@@ -206,7 +206,7 @@ even if it is dead.  The return value is never nil.")]
 			return buffer;
 		}
 
-		[LispBuiltin ("set-buffer", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fset_buffer (L l, Shelisp.Object buffer_or_name)
 		{
 			Shelisp.Object buf = Fget_buffer (l, buffer_or_name);
@@ -591,6 +591,7 @@ even if it is dead.  The return value is never nil.")]
 
 		public static void SetBuffer_1 (Buffer b)
 		{
+			Buffer.CurrentBuffer = b;
 		}
 
 		public static void RecordBuffer (Shelisp.Object buffer)
@@ -766,11 +767,19 @@ even if it is dead.  The return value is never nil.")]
 		Shelisp.Object local_var_alist;
 
 		/* Symbol naming major mode (eg, lisp-mode).  */
-		Shelisp.Object major_mode;
+		[LispBuiltin]
+		public static Shelisp.Object Vmajor_mode = L.Qnil;
+
+		public Shelisp.Object major_mode;
+
 		/* Pretty name of major mode (eg, "Lisp"). */
 		Shelisp.Object mode_name;
+
 		/* Mode line element that controls format of mode line.  */
-		Shelisp.Object mode_line_format;
+		[LispBuiltin]
+		public static Shelisp.Object Vmode_line_format = L.Qnil;
+
+		public Shelisp.Object mode_line_format;
 
 		/* Analogous to mode_line_format for the line displayed at the top
 		   of windows.  Nil means don't display that line.  */
@@ -788,10 +797,36 @@ even if it is dead.  The return value is never nil.")]
 		/* Values of several buffer-local variables.  */
 		/* tab-width is buffer-local so that redisplay can find it
 		   in buffers that are not current.  */
-		Shelisp.Object case_fold_search;
-		Shelisp.Object tab_width;
-		Shelisp.Object fill_column;
-		Shelisp.Object left_margin;
+		private Shelisp.Object case_fold_search = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vcase_fold_search {
+			get { return Buffer.CurrentBuffer.case_fold_search; }
+			set { Buffer.CurrentBuffer.case_fold_search = value; }
+		}
+
+		private Shelisp.Object tab_width = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vtab_width {
+			get { return Buffer.CurrentBuffer.tab_width; }
+			set { Buffer.CurrentBuffer.tab_width = value; }
+		}
+
+		private Shelisp.Object fill_column = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vfill_column {
+			get { return Buffer.CurrentBuffer.fill_column; }
+			set { Buffer.CurrentBuffer.fill_column = value; }
+		}
+
+
+		private Shelisp.Object left_margin = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vleft_margin {
+			get { return Buffer.CurrentBuffer.left_margin; }
+			set { Buffer.CurrentBuffer.left_margin = value; }
+		}
+
+
 		/* Function to call when insert space past fill column.  */
 		Shelisp.Object auto_fill_function;
 
@@ -806,25 +841,57 @@ even if it is dead.  The return value is never nil.")]
 		Shelisp.Object case_eqv_table;
 
 		/* Non-nil means do not display continuation lines.  */
-		Shelisp.Object truncate_lines;
+		private Shelisp.Object truncate_lines = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vtruncate_lines {
+			get { return Buffer.CurrentBuffer.truncate_lines; }
+			set { Buffer.CurrentBuffer.truncate_lines = value; }
+		}
+
 		/* Non-nil means to use word wrapping when displaying continuation lines.  */
-		Shelisp.Object word_wrap;
+		private Shelisp.Object word_wrap = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vword_wrap {
+			get { return Buffer.CurrentBuffer.word_wrap; }
+			set { Buffer.CurrentBuffer.word_wrap = value; }
+		}
+
 		/* Non-nil means display ctl chars with uparrow.  */
-		Shelisp.Object ctl_arrow;
+		private Shelisp.Object ctl_arrow = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vctl_arrow {
+			get { return Buffer.CurrentBuffer.ctl_arrow; }
+			set { Buffer.CurrentBuffer.ctl_arrow = value; }
+		}
 		/* Non-nil means reorder bidirectional text for display in the
 		   visual order.  */
-		Shelisp.Object bidi_display_reordering;
+		private Shelisp.Object bidi_display_reordering = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vbidi_display_reordering {
+			get { return Buffer.CurrentBuffer.bidi_display_reordering; }
+			set { Buffer.CurrentBuffer.bidi_display_reordering = value; }
+		}
+
 		/* If non-nil, specifies which direction of text to force in all the
 		   paragraphs of the buffer.  Nil means determine paragraph
 		   direction dynamically for each paragraph.  */
-		Shelisp.Object bidi_paragraph_direction;
+		private Shelisp.Object bidi_paragraph_direction = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vbidi_paragraph_direction {
+			get { return Buffer.CurrentBuffer.bidi_paragraph_direction; }
+			set { Buffer.CurrentBuffer.bidi_paragraph_direction = value; }
+		}
+
 		/* Non-nil means do selective display;
 		   see doc string in syms_of_buffer (buffer.c) for details.  */
 		Shelisp.Object selective_display;
-#if !old
 		/* Non-nil means show ... at end of line followed by invisible lines.  */
-		Shelisp.Object selective_display_ellipses;
-#endif
+		private Shelisp.Object selective_display_ellipses = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vselective_display_ellipses {
+			get { return Buffer.CurrentBuffer.selective_display_ellipses; }
+			set { Buffer.CurrentBuffer.selective_display_ellipses = value; }
+		}
 		/* Alist of (FUNCTION . STRING) for each minor mode enabled in buffer.  */
 		Shelisp.Object minor_modes;
 		/* t if "self-insertion" should overwrite; `binary' if it should also
@@ -916,16 +983,37 @@ even if it is dead.  The return value is never nil.")]
 
 		/* Non-nil means indicate lines not displaying text (in a style
 		   like vi).  */
-		Shelisp.Object indicate_empty_lines;
+		private Shelisp.Object indicate_empty_lines = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vindicate_empty_lines {
+			get { return Buffer.CurrentBuffer.indicate_empty_lines; }
+			set { Buffer.CurrentBuffer.indicate_empty_lines = value; }
+		}
 
 		/* Non-nil means indicate buffer boundaries and scrolling.  */
-		Shelisp.Object indicate_buffer_boundaries;
+		private Shelisp.Object indicate_buffer_boundaries = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vindicate_buffer_boundaries {
+			get { return Buffer.CurrentBuffer.indicate_buffer_boundaries; }
+			set { Buffer.CurrentBuffer.indicate_buffer_boundaries = value; }
+		}
 
 		/* Logical to physical fringe bitmap mappings.  */
-		Shelisp.Object fringe_indicator_alist;
+		private Shelisp.Object fringe_indicator_alist = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vfringe_indicator_alist {
+			get { return Buffer.CurrentBuffer.fringe_indicator_alist; }
+			set { Buffer.CurrentBuffer.fringe_indicator_alist = value; }
+		}
 
 		/* Logical to physical cursor bitmap mappings.  */
-		Shelisp.Object fringe_cursor_alist;
+		private Shelisp.Object fringe_cursor_alist = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vfringe_cursor_alist {
+			get { return Buffer.CurrentBuffer.fringe_cursor_alist; }
+			set { Buffer.CurrentBuffer.fringe_cursor_alist = value; }
+		}
+
 
 		/* Time stamp updated each time this buffer is displayed in a window.  */
 		Shelisp.Object display_time;
@@ -934,30 +1022,95 @@ even if it is dead.  The return value is never nil.")]
 		   window showing this buffer, try to choose a window start so
 		   that point ends up this number of lines from the top of the
 		   window.  Nil means that scrolling method isn't used.  */
-		Shelisp.Object scroll_up_aggressively;
+		private Shelisp.Object scroll_up_aggressively = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vscroll_up_aggressively {
+			get { return Buffer.CurrentBuffer.scroll_up_aggressively; }
+			set { Buffer.CurrentBuffer.scroll_up_aggressively = value; }
+		}
 
 		/* If scrolling the display because point is above the top of a
 		   window showing this buffer, try to choose a window start so
 		   that point ends up this number of lines from the bottom of the
 		   window.  Nil means that scrolling method isn't used.  */
-		Shelisp.Object scroll_down_aggressively;
+		private Shelisp.Object scroll_down_aggressively = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vscroll_down_aggressively {
+			get { return Buffer.CurrentBuffer.scroll_down_aggressively; }
+			set { Buffer.CurrentBuffer.scroll_down_aggressively = value; }
+		}
 
 		/* Desired cursor type in this buffer.  See the doc string of
 		   per-buffer variable `cursor-type'.  */
-		Shelisp.Object cursor_type;
+		private Shelisp.Object cursor_type = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vcursor_type {
+			get { return Buffer.CurrentBuffer.cursor_type; }
+			set { Buffer.CurrentBuffer.cursor_type = value; }
+		}
 
 		/* An integer > 0 means put that number of pixels below text lines
 		   in the display of this buffer.  */
-		Shelisp.Object extra_line_spacing;
+		private Shelisp.Object extra_line_spacing = L.Qnil;
+		[LispBuiltin ("line-spacing")]
+		public static Shelisp.Object Vextra_line_spacing {
+			get { return Buffer.CurrentBuffer.extra_line_spacing; }
+			set { Buffer.CurrentBuffer.extra_line_spacing = value; }
+		}
 
 		/* *Cursor type to display in non-selected windows.
 		   t means to use hollow box cursor.
 		   See `cursor-type' for other values.  */
-		Shelisp.Object cursor_in_non_selected_windows;
+		private Shelisp.Object cursor_in_non_selected_windows = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vcursor_in_non_selected_windows {
+			get { return Buffer.CurrentBuffer.cursor_in_non_selected_windows; }
+			set { Buffer.CurrentBuffer.cursor_in_non_selected_windows = value; }
+		}
 
 		public Buffer next;
 
 		public static Buffer all_buffers;
 		public static Shelisp.Object Vbuffer_alist = L.Qnil;
+
+		[LispBuiltin (DocString = @"Non-nil if Transient Mark mode is enabled.
+See the command `transient-mark-mode' for a description of this minor mode.
+
+Non-nil also enables highlighting of the region whenever the mark is active.
+The variable `highlight-nonselected-windows' controls whether to highlight
+all windows or just the selected window.
+
+Lisp programs may give this variable certain special values:
+
+- A value of `lambda' enables Transient Mark mode temporarily.
+  It is disabled again after any subsequent action that would
+  normally deactivate the mark (e.g. buffer modification).
+
+- A value of (only . OLDVAL) enables Transient Mark mode
+  temporarily.  After any subsequent point motion command that is
+  not shift-translated, or any other action that would normally
+  deactivate the mark (e.g. buffer modification), the value of
+  `transient-mark-mode' is set to OLDVAL.")]
+		public static Shelisp.Object Vtransient_mark_mode = L.Qnil;
+
+	        [LispBuiltin (DocString = @"Non-nil means you can use the mark even when inactive.
+This option makes a difference in Transient Mark mode.
+When the option is non-nil, deactivation of the mark
+turns off region highlighting, but commands that use the mark
+behave as if the mark were still active.")]
+		public static bool Vmark_even_if_inactive = true;
+	}
+
+	public static class PerBuffer {
+		/* Mode line element that controls format of mode line.  */
+		public static Shelisp.Object mode_line_format {
+			get { return Buffer.CurrentBuffer.mode_line_format; }
+			set { Buffer.CurrentBuffer.mode_line_format = value; }
+		}
+
+		public static Shelisp.Object major_mode {
+			get { return Buffer.CurrentBuffer.major_mode; }
+			set { Buffer.CurrentBuffer.major_mode = value; }
+		}
 	}
 }

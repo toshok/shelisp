@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace Shelisp {
 	public static class Control {
 
-		[LispBuiltin ("progn", MinArgs = 0, Unevalled = true)]
+		[LispBuiltin (Unevalled = true)]
 		public static Shelisp.Object Fprogn(L l, params Shelisp.Object[] forms)
 		{
 			Shelisp.Object rv = L.Qnil;
@@ -15,7 +15,7 @@ namespace Shelisp {
 			return rv;
 		}
 
-		[LispBuiltin ("prog1", MinArgs = 1, Unevalled = true)]
+		[LispBuiltin (Unevalled = true)]
 		public static Shelisp.Object Fprog1(L l, Shelisp.Object form1, params Shelisp.Object[] forms)
 		{
 			Shelisp.Object rv = form1.Eval(l);
@@ -24,8 +24,8 @@ namespace Shelisp {
 			return rv;
 		}
 
-		[LispBuiltin ("prog2", MinArgs = 1, Unevalled = true)]
-		public static Shelisp.Object Fprog1(L l, Shelisp.Object form1, Shelisp.Object form2, params Shelisp.Object[] forms)
+		[LispBuiltin (Unevalled = true)]
+		public static Shelisp.Object Fprog2(L l, Shelisp.Object form1, Shelisp.Object form2, params Shelisp.Object[] forms)
 		{
 			Shelisp.Object rv;
 
@@ -38,7 +38,7 @@ namespace Shelisp {
 			return rv;
 		}
 
-		[LispBuiltin ("if", MinArgs = 2, Unevalled = true)]
+		[LispBuiltin (Unevalled = true)]
 		public static Shelisp.Object Fif(L l, Shelisp.Object condition, Shelisp.Object then_form, params Shelisp.Object[] else_forms)
 		{
 			if (!L.NILP(condition.Eval(l)))
@@ -51,7 +51,7 @@ namespace Shelisp {
 			}
 		}
 
-		[LispBuiltin ("cond", MinArgs = 2, Unevalled = true)]
+		[LispBuiltin (Unevalled = true)]
 		public static Shelisp.Object Fcond(L l, params Shelisp.Object[] clauses)
 		{
 			for (int i = 0; i < clauses.Length; i ++) {
@@ -75,13 +75,13 @@ namespace Shelisp {
 		}
 
 
-		[LispBuiltin ("not", MinArgs = 1, Unevalled = true)]
+		[LispBuiltin (Unevalled = true)]
 		public static Shelisp.Object Fnot (L l, Shelisp.Object cond)
 		{
 			return L.NILP(cond) ? L.Qt : L.Qnil;
 		}
 
-		[LispBuiltin ("or", MinArgs = 0, Unevalled = true)]
+		[LispBuiltin (Unevalled = true)]
 		public static Shelisp.Object For (L l, params Shelisp.Object[] args)
 		{
 			for (int i = 0; i < args.Length; i ++) {
@@ -92,7 +92,7 @@ namespace Shelisp {
 			return L.Qnil;
 		}
 
-		[LispBuiltin ("and", MinArgs = 0, Unevalled = true)]
+		[LispBuiltin (Unevalled = true)]
 		public static Shelisp.Object Fand (L l, params Shelisp.Object[] args)
 		{
 			Shelisp.Object evalled = L.Qt;
@@ -105,8 +105,8 @@ namespace Shelisp {
 			return evalled;
 		}
 
-		[LispBuiltin ("while", MinArgs = 1, Unevalled = true)]
-		public static Shelisp.Object Fand (L l, Shelisp.Object condition, params Shelisp.Object[] forms)
+		[LispBuiltin (MinArgs = 1, Unevalled = true)]
+		public static Shelisp.Object Fwhile (L l, Shelisp.Object condition, params Shelisp.Object[] forms)
 		{
 			while (!L.NILP (condition.Eval (l))) {
 				for (int i = 0; i < forms.Length; i ++)

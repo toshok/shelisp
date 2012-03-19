@@ -14,8 +14,9 @@ namespace Shelisp {
 			KeyAndValue
 		}
 
-		public Hash (Shelisp.Object test, Shelisp.Object weakness, Shelisp.Object size, Shelisp.Object rehash_size, Shelisp.Object rehash_threshold)
+		public Hash (L l, Shelisp.Object test, Shelisp.Object weakness, Shelisp.Object size, Shelisp.Object rehash_size, Shelisp.Object rehash_threshold)
 		{
+			this.l = l;
 			this.test = test;
 			this.weakness = weakness;
 			this.size = size;
@@ -28,13 +29,13 @@ namespace Shelisp {
 				weakness_ = Weakness.None;
 			else if (weakness.LispEq (L.Qt))
 				weakness_ = Weakness.KeyAndValue;
-			else if (weakness.LispEq (Qkey))
+			else if (weakness.LispEq (L.Qkey))
 				weakness_ = Weakness.Key;
-			else if (weakness.LispEq (Qvalue))
+			else if (weakness.LispEq (L.Qvalue))
 				weakness_ = Weakness.Value;
-			else if (weakness.LispEq (Qkey_or_value))
+			else if (weakness.LispEq (L.Qkey_or_value))
 				weakness_ = Weakness.KeyOrValue;
-			else if (weakness.LispEq (Qkey_and_value))
+			else if (weakness.LispEq (L.Qkey_and_value))
 				weakness_ = Weakness.KeyAndValue;
 			else
 				throw new Exception (string.Format ("invalid weakness {0}", weakness));
@@ -47,6 +48,7 @@ namespace Shelisp {
 			return string.Format ("#<hash-table '{0} {1} {2}/{3} {4}>", test, weakness, count, size, -1/*XXX*/);
 		}
 
+		private L l;
 		private int count;
 		private Tuple<Shelisp.Object,Shelisp.Object>[] table;
 		private Shelisp.Object test;
@@ -60,7 +62,10 @@ namespace Shelisp {
 		  — Function: make-hash-table &rest keyword-args
 
 		  :test test
-		  This specifies the method of key lookup for this hash table. The default is eql; eq and equal are other alternatives:
+		  This specifies the method of key lookup for this
+		  hash table. The default is eql; eq and equal are
+		  other alternatives:
+
 		  eql
 		  Keys which are numbers are “the same” if they are
 		  equal, that is, if they are equal in value and
@@ -145,18 +150,7 @@ namespace Shelisp {
 		  fraction of the nominal size. The default for
 		  threshold is 0.8.
 		*/
-		static Shelisp.Symbol Qtest = L.intern (":test");
-		static Shelisp.Symbol Qweakness = L.intern (":weakness");
-		static Shelisp.Symbol Qsize = L.intern (":size");
-		static Shelisp.Symbol Qrehash_size = L.intern (":rehash-size");
-		static Shelisp.Symbol Qrehash_threshold = L.intern (":rehash-threshold");
-
-		static Shelisp.Symbol Qkey = L.intern ("key");
-		static Shelisp.Symbol Qvalue = L.intern ("value");
-		static Shelisp.Symbol Qkey_or_value = L.intern ("key-or-value");
-		static Shelisp.Symbol Qkey_and_value = L.intern ("key-and-value");
-
-		[LispBuiltin ("make-hash-table", MinArgs = 0)]
+		[LispBuiltin]
 		public static Shelisp.Object Fmake_hash_table (L l, params Shelisp.Object[] keyword_args)
 		{
 			Shelisp.Object test = L.intern ("eql"); // this is wrong, it's not just numbers, right?
@@ -168,24 +162,26 @@ namespace Shelisp {
 			for (int i = 0; i < keyword_args.Length; i += 2) {
 				var keyword = keyword_args[i];
 
+				Console.WriteLine (keyword);
+
 				if (i == keyword_args.Length - 1)
 					throw new Exception (string.Format ("keyword {0} has no value", keyword));
 
 				var value = keyword_args[i+1];
 
-				if (keyword.LispEq (Qtest))
+				if (keyword.LispEq (L.Qtest))
 					test = value;
-				else if (keyword.LispEq (Qweakness))
+				else if (keyword.LispEq (L.Qweakness))
 					weakness = value;
-				else if (keyword.LispEq (Qsize))
+				else if (keyword.LispEq (L.Qsize))
 					size = value;
-				else if (keyword.LispEq (Qrehash_size))
+				else if (keyword.LispEq (L.Qrehash_size))
 					rehash_size = value;
-				else if (keyword.LispEq (Qrehash_threshold))
+				else if (keyword.LispEq (L.Qrehash_threshold))
 					rehash_threshold = value;
 			}
 
-			return new Hash (test, weakness, size, rehash_size, rehash_threshold);
+			return new Hash (l, test, weakness, size, rehash_size, rehash_threshold);
 		}
 
 		public static int sxhash (Shelisp.Object obj)
@@ -197,36 +193,40 @@ namespace Shelisp {
 		  — Function: gethash key table &optional default
 		  This function looks up key in table, and returns its associated value—or default, if key has no association in table.
 		*/
-		[LispBuiltin ("gethash", MinArgs = 2)]
-		public static Shelisp.Object Fgethash (L l, Shelisp.Object key, Shelisp.Object table, Shelisp.Object @default)
+		[LispBuiltin]
+		public static Shelisp.Object Fgethash (L l, Shelisp.Object key, Shelisp.Object table, [LispOptional] Shelisp.Object @default)
 		{
 			if (!(table is Hash))
 				throw new WrongTypeArgumentException ("hashp", table);
 
-			return ((Hash)table).Get (l, key, @default ?? L.Qnil);
+			return ((Hash)table).Get (key, @default ?? L.Qnil);
 		}
 		
-		private int GetIndex (L l, Shelisp.Object key)
+		private int GetIndex (Shelisp.Object key)
 		{
-			int hash = sxhash (key);
-			int start = hash % (int)((Number)size).boxed;
+			long hash = (long)(uint)sxhash (key);
+			int start = (int)(hash % table.Length);
 
 			int i = start;
 
 			do {
 				if (table[i] == null)
 					return i;
-				if (!L.NILP (new List (new Shelisp.Object[] { test, table[i].Item1, key }).Eval (l)))
+				var list = new List (new Shelisp.Object[] { test, table[i].Item1, key });
+				Debug.Print ("invoking test with {0}", list);
+				var test_rv = list.Eval(l);
+				Debug.Print ("test result = {0}", test_rv);
+				if (!L.NILP (test_rv))
 					return i;
-				i = (i + 1) % (int)((Number)size).boxed;
+				i = (i + 1) % table.Length;
 			} while (i != start);
 
 			throw new Exception ("hash table is full and wasn't rehashed?");
 		}
 
-		public Shelisp.Object Get (L l, Shelisp.Object key, Shelisp.Object @default)
+		public Shelisp.Object Get (Shelisp.Object key, Shelisp.Object @default)
 		{
-			int index = GetIndex (l, key);
+			int index = GetIndex (key);
 			if (table[index] == null)
 				return @default;
 			return table[index].Item2;
@@ -236,20 +236,20 @@ namespace Shelisp {
 		  — Function: puthash key value table
 		  This function enters an association for key in table, with value value. If key already has an association in table, value replaces the old associated value.
 		*/
-		[LispBuiltin ("puthash", MinArgs = 3)]
+		[LispBuiltin]
 		public static Shelisp.Object Fputhash (L l, Shelisp.Object key, Shelisp.Object value, Shelisp.Object table)
 		{
 			if (!(table is Hash))
 				throw new WrongTypeArgumentException ("hashp", table);
 
-			((Hash)table).Put (l, key, value);
+			((Hash)table).Put (key, value);
 
 			return value;
 		}
 
-		public void Put (L l, Shelisp.Object key, Shelisp.Object value)
+		public void Put (Shelisp.Object key, Shelisp.Object value)
 		{
-			int index = GetIndex (l, key);
+			int index = GetIndex (key);
 			bool adding = false;
 
 			if (table[index] == null)
@@ -276,20 +276,20 @@ namespace Shelisp {
 		  nil.
 
 		*/
-		[LispBuiltin ("remhash", MinArgs = 2)]
+		[LispBuiltin]
 		public static Shelisp.Object Fremhash (L l, Shelisp.Object key, Shelisp.Object table)
 		{
 			if (!(table is Hash))
 				throw new WrongTypeArgumentException ("hashp", table);
 
-			((Hash)table).Remove (l, key);
+			((Hash)table).Remove (key);
 
 			return L.Qnil;
 		}
 
-		public void Remove (L l, Shelisp.Object key)
+		public void Remove (Shelisp.Object key)
 		{
-			int index = GetIndex (l, key);
+			int index = GetIndex (key);
 
 			if (table[index] == null)
 				return;
@@ -308,18 +308,18 @@ namespace Shelisp {
 		  Common Lisp note: In Common Lisp, clrhash returns
 		  the empty table. In Emacs Lisp, it returns nil.
 		*/
-		[LispBuiltin ("clrhash", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fclrhash (L l, Shelisp.Object table)
 		{
 			if (!(table is Hash))
 				throw new WrongTypeArgumentException ("hashp", table);
 
-			((Hash)table).Clear (l);
+			((Hash)table).Clear ();
 
 			return L.Qnil;
 		}
 
-		public void Clear (L l)
+		public void Clear ()
 		{
 			table = new Tuple<Shelisp.Object,Shelisp.Object>[(int)((Number)size).boxed];
 			count = 0;
@@ -399,7 +399,7 @@ namespace Shelisp {
      
 		  (make-hash-table :test 'contents-hash)
 		*/
-		[LispBuiltin ("sxhash", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fsxhash (L l, Shelisp.Object obj)
 		{
 			return new Number (sxhash (obj));
@@ -411,7 +411,7 @@ namespace Shelisp {
 		  — Function: hash-table-p table
 		  This returns non-nil if table is a hash table object.
 		*/
-		[LispBuiltin ("hash-table-p", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fhash_table_p (L l, Shelisp.Object table)
 		{
 			return (table is Hash) ? L.Qt : L.Qnil;
@@ -435,7 +435,7 @@ namespace Shelisp {
 		  compare keys. See make-hash-table (see Creating
 		  Hash).
 		*/
-		[LispBuiltin ("hash-table-test", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fhash_table_test (L l, Shelisp.Object table)
 		{
 			if (!(table is Hash))
@@ -448,7 +448,7 @@ namespace Shelisp {
 		  — Function: hash-table-weakness table
 		  This function returns the weak value that was specified for hash table table.
 		*/
-		[LispBuiltin ("hash-table-weakness", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fhash_table_weakness (L l, Shelisp.Object table)
 		{
 			if (!(table is Hash))
@@ -461,7 +461,7 @@ namespace Shelisp {
 		  — Function: hash-table-rehash-size table
 		  This returns the rehash size of table.
 		*/
-		[LispBuiltin ("hash-table-rehash-size", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fhash_table_rehash_size (L l, Shelisp.Object table)
 		{
 			if (!(table is Hash))
@@ -474,7 +474,7 @@ namespace Shelisp {
 		  — Function: hash-table-rehash-threshold table
 		  This returns the rehash threshold of table.
 		*/
-		[LispBuiltin ("hash-table-rehash-threshold", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fhash_table_rehash_threshold (L l, Shelisp.Object table)
 		{
 			if (!(table is Hash))
@@ -487,7 +487,7 @@ namespace Shelisp {
 		  — Function: hash-table-size table
 		  This returns the current nominal size of table.
 		*/
-		[LispBuiltin ("hash-table-size", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fhash_table_size (L l, Shelisp.Object table)
 		{
 			if (!(table is Hash))

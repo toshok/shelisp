@@ -2,9 +2,14 @@ using System;
 using System.IO;
 using Shelisp;
 
+using Shunit;
+
 public class Test {
 	public static void Main (string[] args) {
+		L.RegisterGlobalBuiltins (typeof (TestRunner).Assembly);
+
 		var l = new L();
+#if false
 
 		var list = L.make_list (1, 2, 3, "hi");
 
@@ -71,9 +76,23 @@ public class Test {
 			Console.WriteLine ("failed {0}", e);
 		}
 
-#if false
 		// (car 5), throws an exception
 		Console.WriteLine (L.make_list (L.Qcar, 5).Eval(l));
 #endif
+
+		TestRunner.Initialize (l, false);
+
+		Number number = new Number (5);
+		Assert.That (number, Is.Numberp, "make sure constructor works");
+		Assert.That (new List (L.intern ("symbol-value"), new List (L.Qquote, L.intern ("huuuunh"))), Signals.Error, "void-variable");
+
+		/* the rest of the tests come from .el files in the current directory */
+		l.Vload_path = new List ((Shelisp.String)Environment.CurrentDirectory, l.Vload_path);
+
+		FileIO.Fload_file (l, "eq-tests.el");
+		FileIO.Fload_file (l, "hash-tests.el");
+		FileIO.Fload_file (l, "obarray-tests.el");
+
+		TestRunner.GenerateReport();
 	}
 }
