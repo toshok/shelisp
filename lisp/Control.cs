@@ -41,8 +41,9 @@ namespace Shelisp {
 		[LispBuiltin (Unevalled = true)]
 		public static Shelisp.Object Fif(L l, Shelisp.Object condition, Shelisp.Object then_form, params Shelisp.Object[] else_forms)
 		{
-			if (!L.NILP(condition.Eval(l)))
+			if (!L.NILP(condition.Eval(l))) {
 				return then_form.Eval(l);
+			}
 			else {
 				Shelisp.Object rv = L.Qnil;
 				for (int i = 0; i < else_forms.Length; i ++)
@@ -75,7 +76,7 @@ namespace Shelisp {
 		}
 
 
-		[LispBuiltin (Unevalled = true)]
+		[LispBuiltin]
 		public static Shelisp.Object Fnot (L l, Shelisp.Object cond)
 		{
 			return L.NILP(cond) ? L.Qt : L.Qnil;
