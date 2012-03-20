@@ -32,7 +32,7 @@ namespace Shelisp {
 		public override IEnumerator<Shelisp.Object> GetEnumerator ()
 		{
 			for (int i = 0; i < native_string.Length; i ++)
-				yield return native_string[i];
+				yield return (int)native_string[i];
 		}
 
 		public override int GetHashCode ()
@@ -104,8 +104,11 @@ namespace Shelisp {
 			return L.int_array_to_list (L.match_data);
 		}
 
-		[LispBuiltin]
-		public static Shelisp.Object Fset_match_data (L l, Shelisp.Object data)
+		[LispBuiltin (DocString = @"Set internal data on last search match from elements of LIST.
+LIST should have been created by calling `match-data' previously.
+
+If optional arg RESEAT is non-nil, make markers on LIST point nowhere.")]
+		public static Shelisp.Object Fset_match_data (L l, Shelisp.Object data, Shelisp.Object reseat)
 		{
 			if (!L.LISTP(data))
 				throw new WrongTypeArgumentException ("listp", data);
