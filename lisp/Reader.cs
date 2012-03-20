@@ -156,22 +156,13 @@ namespace Shelisp {
 						goto start;
 					}
 				}
-				else if (ch == '#') {
-					if (sb.Length > 0) {
-						return ReadSymbolLikeThing (sb.ToString());
-					}
-					else {
-						s.Read(); // consume the # and ignore it.  it's a way to reference byte compiled functions but it should work just as well without
-						goto start;
-					}
-				}
 				else if (ch == '\'') {
 					if (sb.Length > 0) {
 						return ReadSymbolLikeThing (sb.ToString());
 					}
 					else {
 						s.Read(); // consume the quote and recurse
-						return new Quote (Read(s, valid_end));
+						return new List (L.intern ("quote"), new List (Read(s, valid_end), L.Qnil));
 					}
 				}
 				else if (ch == '`') {
@@ -183,27 +174,38 @@ namespace Shelisp {
 						return new List (L.intern ("`"), new List (Read(s, valid_end), L.Qnil));
 					}
 				}
-				// the following two cases should only work inside backquoted forms
-				else if (ch == '@') {
+				else if (ch == '#') {
 					if (sb.Length > 0) {
 						return ReadSymbolLikeThing (sb.ToString());
 					}
 					else {
-						s.Read(); // consume the @
-						goto start;
+						s.Read(); // consume the #
+						ch = (char)s.Peek();
+						switch (ch) {
+						case 'x': // unicode codepoint
+							s.Read(); // consume the x
+							return new Number (ReadHexNumber (s));
+						case '\'': // anonymous functions
+							s.Read(); // consume the '
+							goto start; 
+						default:
+							throw new LispInvalidReadSyntaxException (string.Format ("#{0}", ch));
+						}
 					}
 				}
 				else if (ch == ',') {
-					if (sb.Length == 1 && sb[0] == '@') {
-						s.Read(); // consume the comma and recurse
-						return new List (L.intern ("@,"), new List (Read(s, valid_end), L.Qnil));
-					}
 					if (sb.Length > 0) {
 						return ReadSymbolLikeThing (sb.ToString());
 					}
 					else {
-						s.Read(); // consume the comma and recurse
-						return new List (L.intern (","), new List (Read(s, valid_end), L.Qnil));
+						s.Read(); // consume the comma
+						if ((char)s.Peek() == '@') {
+							s.Read(); // consume the @ and recurse
+							return new List (L.intern (",@"), new List (Read(s, valid_end), L.Qnil));
+						}
+						else {
+							return new List (L.intern (","), new List (Read(s, valid_end), L.Qnil));
+						}
 					}
 				}
 				else {
@@ -507,10 +509,10 @@ namespace Shelisp {
 			return L.Qnil;
 		}
 
-#if false
 		[LispBuiltin]
 		public static Shelisp.Object Fread_from_string (L l, Shelisp.Object str, [LispOptional] Shelisp.Object start, Shelisp.Object end)
 		{
+#if false
 			if (!(str is String))
 				throw new WrongTypeArgumentException ("stringp", str);
 			Shelisp.Object obj;
@@ -519,7 +521,21 @@ namespace Shelisp {
 			obj = Reader.Read ((string)(Shelisp.String)str, out pos);
 
 			return new List (obj, (Number)pos);
-		}
 #endif
+			return L.Qnil;
+		}
+
+		[LispBuiltin (DocString = @"Whether to use lexical binding when evaluating code.
+Non-nil means that the code in the current buffer should be evaluated
+with lexical binding.
+This variable is automatically set from the file variables of an
+interpreted Lisp file read using `load'.  Unlike other file local
+variables, this must be set in the first line of a file.")]
+		public static bool Vlexical_binding = false;
+		// XXX this is meant to be buffer local
+		// Fmake_variable_buffer_local (Qlexical_binding);
+
+		[LispBuiltin (DocString = @"Used for internal purposes by `load'.")]
+		public static Shelisp.Object Vcurrent_load_list = L.Qnil;
 	}
 }
