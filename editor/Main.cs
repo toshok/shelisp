@@ -21,6 +21,7 @@ namespace Shemacs.Editor {
 
 			L.Fsetq (l, L.intern ("command-line-args"), new List (L.Qquote, new List (new List ((Shelisp.String)SysProcess.GetCurrentProcess().ProcessName, L.string_array_to_list (args)), L.Qnil)));
 			L.Fsetq (l, L.intern ("emacs-version"), (Shelisp.String)"23.2");
+			L.Fsetq (l, L.intern ("system-configuration"), (Shelisp.String)"mac-apple-darwin");
 			
 			try {
 				FileIO.Fload_file (l, "loadup.el");
