@@ -1,5 +1,6 @@
 using System;
 using SysArray = System.Array;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -14,25 +15,6 @@ namespace Shelisp {
 		{
 			obarray = new Vector (65, new Number (0));
 			current_obarray = obarray;
-
-			Vfeatures = new List (L.intern ("emacs"), L.Qnil);
-
-			variable_container_types = new List<Type>();
-
-			root_environment = Qnil;
-			RegisterGlobalBuiltins (typeof (L).Assembly);
-
-#if DEBUG
-			// dump out our environment
-			if (root_environment != Qnil) {
-				foreach (var binding in (List)root_environment) {
-					if (NILP(binding))
-						break;
-
-					Debug.Print ("{0}", CAR(binding));
-				}
-			}
-#endif
 
 			// must come first
 			Qunbound = Symbol.Unbound;
@@ -59,6 +41,24 @@ namespace Shelisp {
 			((Symbol)Qt).Value = Qt;
 			Qnil = DEFSYM ("nil");
 			((Symbol)Qnil).Value = Qnil;
+
+			variable_container_types = new List<Type>();
+
+			root_environment = Qnil;
+			RegisterGlobalBuiltins (typeof (L).Assembly);
+
+#if DEBUG
+			// dump out our environment
+			if (root_environment != Qnil) {
+				foreach (var binding in (List)root_environment) {
+					if (NILP(binding))
+						break;
+
+					Debug.Print ("{0}", CAR(binding));
+				}
+			}
+#endif
+
 		}
 
 		public L ()
@@ -239,7 +239,8 @@ namespace Shelisp {
 		}
 
 		[LispBuiltin]
-		public static Shelisp.Object Vfeatures;
+		public Shelisp.Object Vfeatures = L.make_list (L.intern ("emacs"));
+
 
 		public bool IsFeatureLoaded (Symbol feature)
 		{
@@ -253,8 +254,10 @@ namespace Shelisp {
 
 		public void AddFeature (Symbol feature)
 		{
-			if (!IsFeatureLoaded (feature))
+			if (!IsFeatureLoaded (feature)) {
+				Console.WriteLine ("AddFeature {0}", feature);
 				Vfeatures = new List (feature, Vfeatures);
+			}
 		}
 
 		// the types we've made note of as having variables.  these are
@@ -403,6 +406,8 @@ namespace Shelisp {
 
 		public static Shelisp.Object CAR (Shelisp.Object cons)
 		{
+			if (!(cons is List))
+				Console.WriteLine ("CAR {0}", cons);
 			return ((List)cons).car;
 		}
 
@@ -428,6 +433,8 @@ namespace Shelisp {
 
 		public static bool CONSP (Shelisp.Object o)
 		{
+			if (o is Quote)
+				return L.CONSP(((Quote)o).obj);
 			return o is List;
 		}
 
@@ -442,13 +449,58 @@ namespace Shelisp {
 			return (o as String).native_string[c];
 		}
 
+		static int eval_depth = 0;
+
+		[Conditional ("EVAL_SPEW")]
+		public static void EvalIndent (int specified_amount = -1)
+		{
+			if (specified_amount == -1)
+				specified_amount = 2;
+			eval_depth += specified_amount;
+		}
+
+		[Conditional ("EVAL_SPEW")]
+		public static void EvalOutdent (int specified_amount = -1)
+		{
+			if (specified_amount == -1)
+				specified_amount = 2;
+			eval_depth -= specified_amount;
+		}
+
+		[Conditional ("EVAL_SPEW")]
+		public static void EvalSpew (string format, params object[] args)
+		{
+			for (int i = 0; i < eval_depth; i ++)
+				Console.Write (" ");
+			Console.WriteLine (format, args);
+		}
+
 		[LispBuiltin]
 		public static Shelisp.Object Ffuncall (L l, Shelisp.Object fun, params Shelisp.Object[] args)
 		{
-			if (fun is Subr)
-				return ((Subr)fun).Call (l, args);
-			else
-				return List.ApplyLambda (l, fun, L.make_list (args), null, false/*the args have already been evaluated*/);
+			if (fun is Symbol)
+				fun = ((Symbol)fun).Function;
+
+			if (fun is Subr) {
+				L.EvalSpew ("funcall subr application, {0}", fun);
+
+				L.EvalIndent();
+				var rv =  ((Subr)fun).Call (l, args);
+				L.EvalOutdent();
+
+				L.EvalSpew ("funcall subr {0} evaluated to {1}", fun, rv);
+				return rv;
+			}
+			else {
+				L.EvalSpew ("evaluating funcall, {0}", fun);
+
+				L.EvalIndent();
+				var rv = List.ApplyLambda (l, fun, L.make_list (args), null, false/*the args have already been evaluated*/);
+				L.EvalOutdent();
+
+				L.EvalSpew ("evaluating of {0} resulted in {1}", fun, rv);
+				return rv;
+			}
 		}
 
 		[LispBuiltin]
@@ -469,10 +521,10 @@ namespace Shelisp {
 				}
 			}
 
-			fun = fun.Eval(l);
 			if (fun is Symbol)
 				fun = L.Findirect_function (l, fun);
 
+			fun = fun.Eval(l);
 			if (fun is Subr)
 				return ((Subr)fun).Call (l, real_args);
 			else
@@ -498,16 +550,12 @@ namespace Shelisp {
 			if (/*!L.NILP (l.Environment)
 			    && */L.CONSP (quoted)
 			    && L.CAR (quoted).LispEq (L.Qlambda)) {
-				Console.WriteLine ("function returning {0}", new List (L.Qclosure, new List (l.Environment,
-													     L.CDR (quoted))));
-
 				/* This is a lambda expression within a lexical environment;
 				   return an interpreted closure instead of a simple lambda.  */
 				return new List (L.Qclosure, new List (l.Environment,
 								       L.CDR (quoted)));
 			}
 			else {
-				Console.WriteLine ("function returning {0}", quoted);
 				/* Simply quote the argument.  */
 				return quoted;
 			}
@@ -714,8 +762,11 @@ usage: (defun NAME ARGLIST [DOCSTRING] BODY...)")]
 			for (int i = 0; i < sym_vals.Length; i += 2) {
 				var sym = sym_vals[i];
 
-				if (!(sym is Symbol))
-					throw new WrongTypeArgumentException ("symbolp", sym);
+				if (!(sym is Symbol)) {
+					sym = sym.Eval(l);
+					if (!(sym is Symbol))
+						throw new WrongTypeArgumentException ("symbolp", sym);
+				}
 
 				val = i < sym_vals.Length - 1 ? sym_vals[i+1] : L.Qnil;
 
@@ -911,6 +962,24 @@ usage: (defun NAME ARGLIST [DOCSTRING] BODY...)")]
 			}
 		}
 
+		[LispBuiltin (Unevalled = true, DocString = @"Do BODYFORM, protecting with UNWINDFORMS.
+If BODYFORM completes normally, its value is returned
+after executing the UNWINDFORMS.
+If BODYFORM exits nonlocally, the UNWINDFORMS are executed anyway.
+usage: (unwind-protect BODYFORM UNWINDFORMS...)")]
+		public static Shelisp.Object Funwind_protect (L l, Shelisp.Object bodyform, params Shelisp.Object[] unwindforms)
+		{
+			Shelisp.Object rv = L.Qnil;
+
+			try {
+				return bodyform.Eval(l);
+			}
+			finally {
+				foreach (var unwind in unwindforms)
+					unwind.Eval (l);
+			}
+		}
+
 		[LispBuiltin]
 		public static Shelisp.Object Fgetenv (L l, Shelisp.Object variable)
 		{
@@ -957,7 +1026,7 @@ usage: (defun NAME ARGLIST [DOCSTRING] BODY...)")]
 		}
 
 		[LispBuiltin]
-		public Shelisp.Object Vpurify_flag = L.Qnil;
+		public Shelisp.Object Vpurify_flag = L.Qt;
 
 		[LispBuiltin]
 		public static Shelisp.Object Fcalled_interactively_p (L l, Shelisp.Object kind = null)
@@ -1030,5 +1099,71 @@ It does not apply to errors handled by `condition-case'.")]
 		[LispBuiltin (DocString = @"*Non-nil means enter debugger if quit is signaled (C-g, for example).
 				     Does not apply if quit is handled by a `condition-case'.")]
 		public static bool debug_on_quit = false;
+
+		[LispBuiltin (DocString = @"Return result of expanding macros at top level of FORM.
+If FORM is not a macro call, it is returned unchanged.
+Otherwise, the macro is expanded and the expansion is considered
+in place of FORM.  When a non-macro-call results, it is returned.
+
+The second optional arg ENVIRONMENT specifies an environment of macro
+definitions to shadow the loaded ones for use in file byte-compilation.")]
+		public static Shelisp.Object Fmacroexpand (L l, Shelisp.Object form, Shelisp.Object environment)
+		{
+			/* With cleanups from Hallvard Furuseth.  */
+			Shelisp.Object expander, sym, def, tem;
+
+			while (true) {
+				/* Come back here each time we expand a macro call,
+				   in case it expands into another macro call.  */
+				if (!L.CONSP (form))
+					break;
+				/* Set SYM, give DEF and TEM right values in case SYM is not a symbol. */
+				def = sym = L.CAR (form);
+				tem = L.Qnil;
+				/* Trace symbols aliases to other symbols
+				   until we get a symbol that is not an alias.  */
+				while (def is Symbol) {
+					//QUIT;
+					sym = def;
+					tem = List.Fassq (l, sym, environment);
+					if (L.NILP (tem)) {
+						def = ((Symbol)sym).Function;
+						if (!def.LispEq (L.Qunbound))
+							continue;
+					}
+					break;
+				}
+				/* Right now TEM is the result from SYM in ENVIRONMENT,
+				   and if TEM is nil then DEF is SYM's function definition.  */
+				if (L.NILP (tem)) {
+					/* SYM is not mentioned in ENVIRONMENT.
+					   Look at its function definition.  */
+					if (def.LispEq (L.Qunbound) || !L.CONSP (def))
+						/* Not defined or definition not suitable.  */
+						break;
+					if (L.Qautoload.LispEq(L.CAR (def))) {
+						/* Autoloading function: will it be a macro when loaded?  */
+						tem = List.Fnth (l, new Number (4), def);
+						if (tem.LispEq (L.Qt) || tem.LispEq (L.Qmacro)) {
+							FileIO.DoAutoload (l, def, sym);
+							continue;
+						}
+						else
+							break;
+					}
+					else if (!L.Qmacro.LispEq (L.CAR (def)))
+						break;
+					else
+						expander = L.CDR (def);
+				}
+				else {
+					expander = L.CDR (tem);
+					if (L.NILP (expander))
+						break;
+				}
+				form = new List (new Shelisp.Object[] { expander, L.CDR(form) }).Eval(l);
+			}
+			return form;
+		}
 	}
 }
