@@ -9,8 +9,11 @@ namespace Shelisp {
 		[LispBuiltin]
 		public static Shelisp.Object Fexpand_file_name(L l, Shelisp.Object filename, [LispOptional] Shelisp.Object directory)
 		{
-			// XXX
-			return filename;
+			// XXX fix fallback if directory is L.Qnil (it uses the buffer's default-directory)
+			if (directory.LispEq (L.Qnil))
+				directory = new Shelisp.String(Environment.CurrentDirectory);
+
+			return new Shelisp.String (Path.Combine ((string)(Shelisp.String)directory, (string)(Shelisp.String)filename));
 		}
 		
 		[LispBuiltin]
@@ -96,8 +99,10 @@ namespace Shelisp {
 					string full_path = Path.Combine ((string)(Shelisp.String)o, filename);
 					if (Path.GetExtension (full_path) != ".el")
 						full_path = full_path + ".el";
-					if (File.Exists (full_path))
+					if (File.Exists (full_path)) {
+						Console.WriteLine ("found {0}", full_path);
 						return Fload_file (l, (Shelisp.String)full_path);
+					}
 					Console.WriteLine ("{0} not found", full_path);
 				}
 			}
@@ -112,7 +117,7 @@ namespace Shelisp {
 
 			var autoload_function = new List (new Shelisp.Object[] { L.Qautoload, filename, docstring == null ? (Shelisp.Object)(Shelisp.String)"" : docstring, interactive == null ? L.Qnil : interactive, type == null ? L.Qnil : interactive });
 			Symbol.Ffset (l, function, autoload_function);
-			l.Environment = new List (new List(function, function), l.Environment);
+			//l.Environment = new List (new List(function, function), l.Environment);
 			return autoload_function;
 		}
 
@@ -140,12 +145,6 @@ namespace Shelisp {
 		public static Shelisp.Object Ffeaturep(L l, Shelisp.Object feature, [LispOptional] Shelisp.Object subfeature)
 		{
 			return l.IsFeatureLoaded ((Symbol)feature) ? L.Qt : L.Qnil;
-		}
-
-		[LispBuiltin]
-		public static Shelisp.Object Ffeatures(L l, Shelisp.Object feature, [LispOptional] Shelisp.Object subfeature)
-		{
-			throw new NotImplementedException ();
 		}
 
 		[LispBuiltin]
