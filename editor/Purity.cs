@@ -1,10 +1,10 @@
 
 using Shelisp;
 
-namespace Shelisp.Editor {
+namespace Shemacs.Editor {
 	public static class Purity {
 
-		[LispBuiltin ("purecopy", MinArgs = 1)]
+		[LispBuiltin]
 		public static Shelisp.Object Fpurecopy (L l, Shelisp.Object obj)
 		{
 			return obj;

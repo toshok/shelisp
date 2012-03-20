@@ -1,6 +1,6 @@
 using Shelisp;
 
-namespace Shelisp.Editor {
+namespace Shemacs.Editor {
 
 	public class Charset : Object {
 		[LispBuiltin]

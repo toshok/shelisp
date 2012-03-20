@@ -1,9 +1,9 @@
 using System;
 using Shelisp;
 
-namespace Shelisp.Editor {
+namespace Shemacs.Editor {
 
-	public class Keymap : Object {
+	public class Keymap : Shelisp.Object {
 		[LispBuiltin]
 		public static Shelisp.Object Fdefine_key (L l, Shelisp.Object keymap, Shelisp.Object key, Shelisp.Object binding)
 		{

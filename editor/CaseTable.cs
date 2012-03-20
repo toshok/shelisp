@@ -1,7 +1,7 @@
 
 using Shelisp;
 
-namespace Shelisp.Editor {
+namespace Shemacs.Editor {
 
 	class CaseTable {
 
