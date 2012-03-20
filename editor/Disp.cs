@@ -1,6 +1,6 @@
 using Shelisp;
 
-namespace Shelisp.Editor {
+namespace Shemacs.Editor {
 
 	public class Disp {
 
@@ -44,6 +44,18 @@ this variable.")]
 The symbols on this list are examined during redisplay to determine
 where to display overlay arrows.")]
 		public static Shelisp.Object Voverlay_arrow_variable_list = new List (L.intern ("overlay-arrow-position"), L.Qnil);
+
+		// this comes from xdisp.c
+		[LispBuiltin]
+		public static int message_log_max = 100;
+
+		// this comes from xselect.c
+		[LispBuiltin]
+		public static Shelisp.Object Vx_lost_selection_functions = L.Qnil;
+
+		// this comes from xselect.c
+		[LispBuiltin]
+		public static Shelisp.Object Vx_sent_selection_functions = L.Qnil;
 	}
 
 }
