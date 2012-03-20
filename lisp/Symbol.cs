@@ -29,11 +29,6 @@ namespace Shelisp {
 			this.function = Unbound;
 		}
 
-		public override string ToString()
-		{
-			return name.Replace(" ", "\\ ");
-		}
-
 		public override string ToString(string format_type)
 		{
 			switch (format_type) {
