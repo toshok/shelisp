@@ -433,8 +433,6 @@ namespace Shelisp {
 
 		public static bool CONSP (Shelisp.Object o)
 		{
-			if (o is Quote)
-				return L.CONSP(((Quote)o).obj);
 			return o is List;
 		}
 
