@@ -11,4 +11,4 @@ include $(TOP)/build/build.mk
 
 
 run: $(PROGRAM)
-	MONO_INLINELIMIT=0 MONO_PATH=$(shell pwd)/$(TOP)/lisp $(MONO) --debug $(PROGRAM)
+	MONO_INLINELIMIT=0 MONO_PATH=$(shell pwd)/$(TOP)/lisp $(MONO) --gc=sgen --debug $(PROGRAM)
