@@ -208,13 +208,18 @@ namespace Shelisp {
 			Number ln = (Number)op1;
 			Number rn = (Number)op2;
 
-			bool need_float = (ln.boxed is float || rn.boxed is float);
+			bool need_float = Number.IsFloat(ln) || Number.IsFloat (rn);
 
-			if (need_float) {
-				return ((float)ln.boxed == (float)rn.boxed) ? L.Qt : L.Qnil;
-			}
+			if (need_float)
+				return Number.ToFloat(ln) == Number.ToFloat(rn) ? L.Qt : L.Qnil;
 			else
-				return ((int)ln.boxed == (int)rn.boxed) ? L.Qt : L.Qnil;
+				return Number.ToInt(ln) == Number.ToInt(rn) ? L.Qt : L.Qnil;
+		}
+
+		[LispBuiltin ("/=")]
+		public static Shelisp.Object Fnumnotequal (L l, Shelisp.Object op1, Shelisp.Object op2)
+		{
+			return Control.Fnot (l, Fnumequal (l, op1, op2));
 		}
 
 		[LispBuiltin ("+")]
@@ -386,6 +391,21 @@ namespace Shelisp {
 				}
 			}
 			return new Number (result);
+		}
+
+		[LispBuiltin]
+		public static Shelisp.Object Flsh (L l, Shelisp.Object integer1, Shelisp.Object count)
+		{
+			if (!Number.IsInt(integer1))
+				throw new WrongTypeArgumentException ("integerp", integer1);
+
+			if (!Number.IsInt(count))
+				throw new WrongTypeArgumentException ("integerp", count);
+
+			int integer1_i = Number.ToInt (integer1);
+			int count_i = Number.ToInt (count);
+
+			return new Number (integer1_i << count_i);
 		}
 	}
 
