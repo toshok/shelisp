@@ -70,7 +70,19 @@ namespace Shelisp {
 		[LispBuiltin]
 		public static Shelisp.Object Fvconcat (L l, params Shelisp.Object[] args)
 		{
-			throw new NotImplementedException ();
+			int length_needed = 0;
+			foreach (var arg in args)
+				length_needed += ((Sequence)arg).Length;
+
+			var vector = (Vector)Fmake_vector (l, length_needed, new Number (0));
+			int vi = 0;
+
+			foreach (var arg in args) {
+				foreach (var el in (Sequence)arg)
+					vector[vi++] = el;
+			}
+
+			return vector;
 		}
 	}
 }
