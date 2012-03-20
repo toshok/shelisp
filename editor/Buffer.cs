@@ -1099,6 +1099,11 @@ When the option is non-nil, deactivation of the mark
 turns off region highlighting, but commands that use the mark
 behave as if the mark were still active.")]
 		public static bool Vmark_even_if_inactive = true;
+
+		[LispBuiltin (DocString = @"List of functions called with no args to query before killing a buffer.
+The buffer being killed will be current while the functions are running.
+If any of them returns nil, the buffer is not killed.")]
+		public static Shelisp.Object Vkill_buffer_query_functions = L.Qnil;
 	}
 
 	public static class PerBuffer {
