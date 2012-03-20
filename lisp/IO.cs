@@ -32,6 +32,13 @@ namespace Shelisp {
 		}
 
 		[LispBuiltin]
+		public static Shelisp.Object Fformat_time_string(L l, Shelisp.Object format, [LispOptional] Shelisp.Object time, Shelisp.Object universal)
+		{
+			return (Shelisp.String)"format-time-string not implemented";
+		}
+
+
+		[LispBuiltin]
 		public static Shelisp.Object Fprint(L l, Shelisp.Object obj, [LispOptional] Shelisp.Object stream)
 		{
 			Console.WriteLine (obj.ToString("prin1"));
@@ -43,6 +50,12 @@ namespace Shelisp {
 		{
 			Console.Write (obj.ToString("prin1"));
 			return obj;
+		}
+
+		[LispBuiltin]
+		public static Shelisp.Object Fprin1_to_string(L l, Shelisp.Object obj)
+		{
+			return (Shelisp.String)obj.ToString("prin1");
 		}
 
 		[LispBuiltin]
