@@ -254,10 +254,8 @@ namespace Shelisp {
 
 		public void AddFeature (Symbol feature)
 		{
-			if (!IsFeatureLoaded (feature)) {
-				Console.WriteLine ("AddFeature {0}", feature);
+			if (!IsFeatureLoaded (feature))
 				Vfeatures = new List (feature, Vfeatures);
-			}
 		}
 
 		// the types we've made note of as having variables.  these are
