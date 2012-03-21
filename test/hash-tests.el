@@ -32,3 +32,5 @@
 
 (test-retrieve-with-different-key "hi" "hi" '(v a l u e) nil "string")
 (test-retrieve-with-different-key 5 5 '(v a l u e) t "int")
+
+(provide 'hash-tests)

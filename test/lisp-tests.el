@@ -33,6 +33,7 @@
 ;;     (t (message "failex") nil)))
 
 (defun test-failure (msg)
+  (if msg msg (setq msg ""))
   (if verbose-tests
       (message "%d) FAILED %s" number-of-tests msg)
      (princ "F"))
@@ -41,9 +42,18 @@
   nil)
 
 (defun test-success (msg)
+  (if msg msg (setq msg ""))
   (if verbose-tests
      (message "%d) PASSED %s" number-of-tests msg)
     (princ "."))
+  (setq number-of-tests (1+ number-of-tests))
+  t)
+
+(defun test-ignored (msg)
+  (if msg msg (setq msg ""))
+  (if verbose-tests
+     (message "%d) IGNORED %s" number-of-tests msg)
+    (princ "I"))
   (setq number-of-tests (1+ number-of-tests))
   t)
 
@@ -118,5 +128,10 @@
         (test-failure desc)
        (test-success desc))
    (t (message "failex") nil)))
+
+(defmacro ignore-tests (reason &rest tests)
+  (while tests
+     (test-ignored reason)
+     (setq tests (cdr tests))))
 
 (provide 'lisp-tests)

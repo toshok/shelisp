@@ -53,3 +53,5 @@
 
 (assert-equal
     (let ((mylist '(1 2))) (setcdr mylist 2) mylist) '(1 . 2) "setcdr can create dotted lists")
+
+(provide 'list-tests)

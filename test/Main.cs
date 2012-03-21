@@ -80,7 +80,7 @@ public class Test {
 		Console.WriteLine (L.make_list (L.Qcar, 5).Eval(l));
 #endif
 
-		TestRunner.Initialize (l, false);
+		TestRunner.Initialize (l, true);
 
 		Number number = new Number (5);
 		Assert.That (number, Is.Numberp, "make sure constructor works");
@@ -89,10 +89,7 @@ public class Test {
 		/* the rest of the tests come from .el files in the current directory */
 		l.Vload_path = new List ((Shelisp.String)Environment.CurrentDirectory, l.Vload_path);
 
-		FileIO.Fload_file (l, "eq-tests.el");
-		FileIO.Fload_file (l, "list-tests.el");
-		FileIO.Fload_file (l, "hash-tests.el");
-		FileIO.Fload_file (l, "obarray-tests.el");
+		FileIO.Fload_file (l, "run-tests.el");
 
 		TestRunner.GenerateReport();
 	}

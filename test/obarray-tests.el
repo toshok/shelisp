@@ -11,3 +11,5 @@
 (assert-null (intern-soft "frazzle") "after uninterning, the symbol is no longer in the obarray")
 
 (assert-null (unintern "frazzle") "uninterning returns nil if it's not in the obarray")
+
+(provide 'obarray-tests)

@@ -34,3 +34,5 @@
 ;; more number equal tests
 
 (assert-not-equal 5.0 5 "floats are not equal to ints")
+
+(provide 'eq-tests)
