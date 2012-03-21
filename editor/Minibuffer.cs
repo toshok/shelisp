@@ -11,7 +11,6 @@ namespace Shemacs.Editor {
 							       Shelisp.Object initial_input, Shelisp.Object hist, Shelisp.Object def, Shelisp.Object inherit_input_method)
 		{
 			Console.Write (prompt.ToString("princ"));
-			Console.Write (":");
 			return (Shelisp.String)Console.ReadLine ();
 		}
 
