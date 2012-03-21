@@ -26,7 +26,11 @@ namespace Shelisp {
 		public override Shelisp.Object this[int index]
 		{
 			get { return (Number)(int)native_string[index]; }
-			set { /* XXX type check */ native_string[index] = (char)(int)(Number)value; }
+			set {
+				if (Number.IsInt(value))
+					throw new WrongTypeArgumentException ("integer", value ?? L.Qnil);
+				native_string[index] = (char)Number.ToInt(value);
+			}
 		}
 
 		public override IEnumerator<Shelisp.Object> GetEnumerator ()
