@@ -339,6 +339,8 @@ namespace Shelisp {
 		[LispBuiltin]
 		public static Shelisp.Object Flist (L l, params Shelisp.Object[] rest)
 		{
+			if (rest.Length == 0)
+				return L.Qnil;
 			return new List (rest);
 		}
 
@@ -403,7 +405,9 @@ namespace Shelisp {
 		[LispBuiltin]
 		public static Shelisp.Object Fmember (L l, Shelisp.Object obj, Shelisp.Object list)
 		{
-			// check @list arg type
+			if (!L.LISTP (list))
+				throw new WrongTypeArgumentException ("listp", list);
+
 			while (L.CONSP (list)) {
 				if (obj.LispEqual (L.CAR(list)))
 					return list;
@@ -614,6 +618,7 @@ namespace Shelisp {
 				alist = ((List)alist).cdr;
 				if (L.NILP (alist))
 					break;
+				n_i --;
 			}
 
 			if (n_i > 0)
