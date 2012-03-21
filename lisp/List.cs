@@ -649,6 +649,9 @@ namespace Shelisp {
 		[LispBuiltin (DocString = "Set the cdr of CELL to be NEWCDR.  Returns NEWCDR.")]
 		public static Shelisp.Object Fsetcdr (L l, Shelisp.Object cell, Shelisp.Object newcdr)
 		{
+			if (!L.CONSP(cell))
+				throw new WrongTypeArgumentException ("consp", cell);
+
 			((List)cell).cdr = newcdr;
 			return newcdr;
 		}
@@ -656,17 +659,11 @@ namespace Shelisp {
 		[LispBuiltin (DocString = "Set the car of CELL to be NEWCAR.  Returns NEWCAR.")]
 		public static Shelisp.Object Fsetcar (L l, Shelisp.Object cell, Shelisp.Object newcar)
 		{
+			if (!L.CONSP(cell))
+				throw new WrongTypeArgumentException ("consp", cell);
+
 			((List)cell).car = newcar;
 			return newcar;
-		}
-
-		/// XXX these shouldn't be necessary...
-		[LispBuiltin]
-		public static Shelisp.Object Fcadr (L l, Shelisp.Object list)
-		{
-			if (L.NILP (list))
-				return L.Qnil;
-			return L.CAR(L.CDR(list));
 		}
 
 		[LispBuiltin (DocString = @"*Limit on depth in `eval', `apply' and `funcall' before error.
