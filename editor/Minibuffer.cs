@@ -10,7 +10,7 @@ namespace Shemacs.Editor {
 		public static Shelisp.Object Fcompleting_read (L l, Shelisp.Object prompt, Shelisp.Object collection, Shelisp.Object predicate, Shelisp.Object require_match,
 							       Shelisp.Object initial_input, Shelisp.Object hist, Shelisp.Object def, Shelisp.Object inherit_input_method)
 		{
-			Console.Write (prompt);
+			Console.Write (prompt.ToString("princ"));
 			Console.Write (":");
 			return (Shelisp.String)Console.ReadLine ();
 		}
