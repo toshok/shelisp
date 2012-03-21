@@ -44,3 +44,12 @@
 (assert-null (nthcdr 2 '(1)) "(nthcdr 2 '(1)) == nil")
 (assert-equal (nthcdr 1 '(1 2 3 4)) '(2 3 4) "(nthcdr 1 '(1 2 3 4)) == (2 3 4)")
 (assert-equal (nthcdr 1 '(1 . 2)) 2 "(nthcdr 1 '(1 . 2)) == 2")
+
+(assert-equal
+    (let ((mylist '(1 2))) (setcar mylist 3) mylist) '(3 2) "setcar modifies in-place")
+
+(assert-equal
+    (let ((mylist '(1 2))) (setcdr mylist '(3)) mylist) '(1 3) "setcdr modifies in-place")
+
+(assert-equal
+    (let ((mylist '(1 2))) (setcdr mylist 2) mylist) '(1 . 2) "setcdr can create dotted lists")
