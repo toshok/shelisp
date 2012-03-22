@@ -54,4 +54,12 @@
 (assert-equal
     (let ((mylist '(1 2))) (setcdr mylist 2) mylist) '(1 . 2) "setcdr can create dotted lists")
 
+(assert-equal (safe-length '(1 2 3 4 5 6)) 6 "safe-length with a normal list == length")
+
+(setq initial-list '(5 4 3 2))
+(setq initial-cdr (cons 1 initial-list))
+(setq initial-list (nconc initial-list initial-cdr))
+(ignore-tests "circular lists in shelisp are kinda lacking at the moment.. the iterator and hashcode stuff needs fixed"
+  (setq initial-list '(5 4 3 2))(assert-equal (safe-length initial-list) 9 "safe-length with a circular list == number of unique cons nodes"))
+
 (provide 'list-tests)

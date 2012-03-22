@@ -635,13 +635,13 @@ namespace Shelisp {
 
 			Dictionary<Shelisp.Object,bool> conses = new Dictionary<Shelisp.Object,bool>();
 
-			Shelisp.List cons;
+			Shelisp.Object cons = alist;
 			do {
-				cons = (Shelisp.List)alist;
 				if (conses.ContainsKey (cons))
 					break;
 				conses[cons] = true;
-			} while (!L.NILP (cons));
+				cons = L.CDR(cons);
+			} while (L.CONSP (cons));
 
 			return new Number(conses.Keys.Count);
 		}
