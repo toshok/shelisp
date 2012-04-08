@@ -5,7 +5,7 @@
 
 ;; (defmacro assert-signals (expr signal-type)
 ;;   `(condition-case sig
-;;n      (progn
+;;      (progn
 ;;         ,expr
 ;;         (message "FAIL")
 ;;         nil)
@@ -55,6 +55,7 @@
      (message "%d) IGNORED %s" number-of-tests msg)
     (princ "I"))
   (setq number-of-tests (1+ number-of-tests))
+  (setq number-of-ignored-tests (1+ number-of-ignored-tests))
   t)
 
 (defun assert-signals (expr signal-type)
@@ -130,8 +131,13 @@
    (t (message "failex") nil)))
 
 (defmacro ignore-tests (reason &rest tests)
-  (while tests
-     (test-ignored reason)
-     (setq tests (cdr tests))))
+  (if (boundp 'running-on-emacs)
+      (while tests
+        (eval (car tests))
+        (setq tests (cdr tests)))
+    (while tests
+      (test-ignored reason)
+      (setq tests (cdr tests)))))
+
 
 (provide 'lisp-tests)

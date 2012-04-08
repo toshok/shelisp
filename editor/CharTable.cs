@@ -24,7 +24,7 @@ namespace Shemacs.Editor {
 		}
 
 		[LispBuiltin]
-		public static Shelisp.Object Fchar_table_parent (L l, Shelisp.Object char_table, Shelisp.Object parent)
+		public static Shelisp.Object Fset_char_table_parent (L l, Shelisp.Object char_table, Shelisp.Object parent)
 		{
 			// XXX
 			return L.Qnil;

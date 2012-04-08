@@ -46,19 +46,18 @@ namespace Shelisp {
 
 			root_environment = Qnil;
 			RegisterGlobalBuiltins (typeof (L).Assembly);
+		}
 
-#if DEBUG
-			// dump out our environment
-			if (root_environment != Qnil) {
-				foreach (var binding in (List)root_environment) {
+		public void DumpEnvironment ()
+		{
+			if (!L.NILP(Environment)) {
+				foreach (var binding in (List)Environment) {
 					if (NILP(binding))
 						break;
 
 					Debug.Print ("{0}", CAR(binding));
 				}
 			}
-#endif
-
 		}
 
 		public L ()
@@ -445,14 +444,17 @@ namespace Shelisp {
 			return (o as String).native_string[c];
 		}
 
-		static int eval_depth = 0;
+		static int eval_indent = 0;
+
+		[LispBuiltin]
+		public static bool enable_eval_spew = false;
 
 		[Conditional ("EVAL_SPEW")]
 		public static void EvalIndent (int specified_amount = -1)
 		{
 			if (specified_amount == -1)
 				specified_amount = 2;
-			eval_depth += specified_amount;
+			eval_indent += specified_amount;
 		}
 
 		[Conditional ("EVAL_SPEW")]
@@ -460,13 +462,15 @@ namespace Shelisp {
 		{
 			if (specified_amount == -1)
 				specified_amount = 2;
-			eval_depth -= specified_amount;
+			eval_indent -= specified_amount;
 		}
 
 		[Conditional ("EVAL_SPEW")]
 		public static void EvalSpew (string format, params object[] args)
 		{
-			for (int i = 0; i < eval_depth; i ++)
+			if (!enable_eval_spew)
+				return;
+			for (int i = 0; i < eval_indent; i ++)
 				Console.Write (" ");
 			Console.WriteLine (format, args);
 		}
@@ -474,28 +478,36 @@ namespace Shelisp {
 		[LispBuiltin]
 		public static Shelisp.Object Ffuncall (L l, Shelisp.Object fun, params Shelisp.Object[] args)
 		{
-			if (fun is Symbol)
-				fun = ((Symbol)fun).Function;
+			try {
+				if (l.eval_depth ++ >= L.max_lisp_eval_depth)
+					throw new Exception ("max eval depth exceeded");
 
-			if (fun is Subr) {
-				L.EvalSpew ("funcall subr application, {0}", fun);
+				if (fun is Symbol)
+					fun = ((Symbol)fun).Function;
 
-				L.EvalIndent();
-				var rv =  ((Subr)fun).Call (l, args);
-				L.EvalOutdent();
+				if (fun is Subr) {
+					L.EvalSpew ("funcall subr application, {0}", fun);
 
-				L.EvalSpew ("funcall subr {0} evaluated to {1}", fun, rv);
-				return rv;
+					L.EvalIndent();
+					var rv =  ((Subr)fun).Call (l, args);
+					L.EvalOutdent();
+
+					L.EvalSpew ("funcall subr {0} evaluated to {1}", fun, rv);
+					return rv;
+				}
+				else {
+					L.EvalSpew ("evaluating funcall, {0}", fun);
+
+					L.EvalIndent();
+					var rv = List.ApplyLambda (l, fun, L.make_list (args), null, false/*the args have already been evaluated*/);
+					L.EvalOutdent();
+
+					L.EvalSpew ("evaluating of {0} resulted in {1}", fun, rv);
+					return rv;
+				}
 			}
-			else {
-				L.EvalSpew ("evaluating funcall, {0}", fun);
-
-				L.EvalIndent();
-				var rv = List.ApplyLambda (l, fun, L.make_list (args), null, false/*the args have already been evaluated*/);
-				L.EvalOutdent();
-
-				L.EvalSpew ("evaluating of {0} resulted in {1}", fun, rv);
-				return rv;
+			finally {
+				l.eval_depth --;
 			}
 		}
 
@@ -518,7 +530,7 @@ namespace Shelisp {
 			}
 
 			if (fun is Symbol)
-				fun = L.Findirect_function (l, fun);
+				fun = L.Findirect_function (l, fun, L.Qnil);
 
 			fun = fun.Eval(l);
 			if (fun is Subr)
@@ -528,7 +540,7 @@ namespace Shelisp {
 		}
 
 		[LispBuiltin]
-		public static Shelisp.Object Feval (L l, Shelisp.Object obj)
+		public static Shelisp.Object Feval (L l, Shelisp.Object obj, Shelisp.Object lexical)
 		{
 			return obj.Eval(l);
 		}
@@ -544,7 +556,7 @@ namespace Shelisp {
 #endif
 
 			if (/*!L.NILP (l.Environment)
-			    && */L.CONSP (quoted)
+			      &&*/ L.CONSP (quoted)
 			    && L.CAR (quoted).LispEq (L.Qlambda)) {
 				/* This is a lambda expression within a lexical environment;
 				   return an interpreted closure instead of a simple lambda.  */
@@ -558,12 +570,44 @@ namespace Shelisp {
 		}
 
 		[LispBuiltin]
+		public static Shelisp.Object Ffunctionp (L l, Shelisp.Object obj)
+		{
+			if ((obj is Symbol) && !L.NILP (Symbol.Ffboundp (l, obj))) {
+				obj = Findirect_function (l, obj, L.Qt);
+
+				if (L.CONSP (obj) && L.CAR(obj).LispEq (L.Qautoload)) {
+					/* Autoloaded symbols are functions, except if they load macros or keymaps.  */
+					int i;
+					for (i = 0; i < 4 && L.CONSP (obj); i++)
+						obj = L.CDR (obj);
+
+					return (L.CONSP (obj) && !L.NILP (L.CAR (obj))) ? L.Qnil : L.Qt;
+				}
+			}
+
+			if (obj is Subr)
+				return (((Subr)obj).unevalled) ? L.Qt : L.Qnil;
+#if notyet
+			else if (COMPILEDP (obj))
+				return L.Qt;
+#endif
+			else if (L.CONSP (obj)) {
+				Shelisp.Object car = L.CAR (obj);
+				return (car.LispEq (L.Qlambda) || car.LispEq (L.Qclosure)) ? L.Qt : L.Qnil;
+			}
+			else
+				return L.Qnil;
+		}
+
+		[LispBuiltin (Unevalled = true)]
 		public static Shelisp.Object Finteractive (L l, params Shelisp.Object[] args)
 		{
-			Console.Write ("(interactive");
+#if DEBUG
+			Debug.Print ("(interactive");
 			foreach (var a in args)
-				Console.Write (" {0}", a);
-			Console.WriteLine (")");
+				Debug.Print (" {0}", a);
+			Debug.Print (")");
+#endif
 			return L.Qnil;
 		}
 
@@ -575,37 +619,38 @@ namespace Shelisp {
 		}
 
 		[LispBuiltin]
-		public static Shelisp.Object Fadd_hook (L l, Shelisp.Object hook, Shelisp.Object function, [LispOptional] Shelisp.Object append, Shelisp.Object local)
-		{
-			// XXX
-			return L.Qnil;
-		}
-
-		[LispBuiltin]
 		public static Shelisp.Object Frun_hooks (L l, [LispRest] params Shelisp.Object[] hookvars)
 		{
-			// XXX
+			foreach (var hookvar in hookvars) {
+				if (!(hookvar is Symbol))
+					throw new WrongTypeArgumentException ("symbolp", hookvar);
+
+				if (L.NILP (Symbol.Fboundp (l, hookvar)))
+					return L.Qnil;
+
+				Shelisp.Object hooks = hookvar.Eval(l);
+				if (!L.NILP (hooks)) {
+					foreach (var hook in (List)hooks.Eval(l))
+						new List (hook, L.Qnil).Eval (l);
+				}
+			}
 			return L.Qnil;
 		}
 
 		[LispBuiltin]
-		public static Shelisp.Object Findirect_function (L l, Shelisp.Object symorfunction)
+		public static Shelisp.Object Findirect_function (L l, Shelisp.Object symorfunction, [LispOptional] Shelisp.Object noerror)
 		{
 			Shelisp.Object sym = symorfunction;
 
-			Debug.Print ("indirect_function >>>>");
 			while (true) {
-				Debug.Print ("indirect-function for {0}", sym);
 				if (sym is Symbol) {
 					if (sym.LispEq (L.Qunbound)) {
-						Debug.Print ("<<<<");
 						return sym;
 					}
 					sym = ((Symbol)sym).Function;
 					continue;
 				}
 				else {
-					Debug.Print ("<<<<");
 					return sym;
 				}
 			}
@@ -723,8 +768,7 @@ usage: (defun NAME ARGLIST [DOCSTRING] BODY...)")]
 			else
 				value = base_variable;
 
-			Symbol s = (Symbol)name;
-			L.Fsetq (l, s, value);
+			((Symbol)name).Value = value;
 
 			// XXX more here I'm sure... like what do we do with the doc string?
 			//l.Environment = new List (new List(s, s), l.Environment);
@@ -805,7 +849,16 @@ usage: (defun NAME ARGLIST [DOCSTRING] BODY...)")]
 			if (!(sym is Symbol))
 				throw new WrongTypeArgumentException ("symbolp", sym);
 
-			l.Environment = new List (new List(sym, val), l.Environment);
+			// if the symbol exists in our environment it there.
+			// otherwise set the global (on the symbol).
+			Shelisp.Object lex_binding = List.Fassq (l, sym, l.Environment);
+			if (L.CONSP (lex_binding)) {
+				((List)lex_binding).cdr = val;
+			}
+			else {
+				((Shelisp.Symbol)sym).Value = val;
+			}
+
 			return val;
 		}
 
@@ -828,7 +881,12 @@ usage: (defun NAME ARGLIST [DOCSTRING] BODY...)")]
 						value = L.Qnil;
 					}
 					Debug.Print ("adding binding from {0} to {1}", sym, value);
+					try {
 					new_environment = new List (new List (sym, value), new_environment);
+					}
+					catch (Exception) {
+						Console.WriteLine ("{0} = {1}", sym, value);
+					}
 				}
 			}
 
@@ -935,6 +993,47 @@ usage: (defun NAME ARGLIST [DOCSTRING] BODY...)")]
 
 			return L.Qnil;
 		}
+
+		[LispBuiltin (Unevalled = true, DocString = @"Eval BODY allowing nonlocal exits using `throw'.
+TAG is evalled to get the tag to use; it must not be nil.
+
+Then the BODY is executed.
+Within BODY, a call to `throw' with the same TAG exits BODY and this `catch'.
+If no throw happens, `catch' returns the value of the last BODY form.
+If a throw happens, it specifies the value to return from `catch'.
+usage: (catch TAG BODY...)")]
+		public static Shelisp.Object Fcatch (L l, Shelisp.Object tag, [LispRest] params Shelisp.Object[] bodies)
+		{
+			if (L.NILP (tag))
+				throw new Exception ();
+
+			tag = tag.Eval (l);
+
+			if (!(tag is Symbol))
+				throw new Exception ();
+
+			Shelisp.Object rv = L.Qnil;
+			try {
+				foreach (var body in bodies)
+					rv = body.Eval(l);
+			}
+			catch (LispThrown e) {
+				if (tag.LispEq (e.Tag))
+					rv = e.Value;
+				else
+					throw;
+			}
+			return rv;
+		}
+
+		[LispBuiltin]
+		public static Shelisp.Object Fthrow (L l, Shelisp.Object tag, Shelisp.Object val)
+		{
+			if (L.NILP (tag))
+				throw new Exception ();
+
+			throw new LispThrown (tag, val);
+		 }
 
 		[LispBuiltin (Unevalled = true)]
 		public static Shelisp.Object Fcondition_case (L l, Shelisp.Object var, Shelisp.Object protected_form, params Shelisp.Object[] handlers)
@@ -1161,5 +1260,22 @@ definitions to shadow the loaded ones for use in file byte-compilation.")]
 			}
 			return form;
 		}
+
+		[LispBuiltin (DocString = "Return the argument unchanged")]
+		public static Shelisp.Object Fidentity (L l, Shelisp.Object arg)
+		{
+			return arg;
+		}
+
+		[LispBuiltin (DocString = @"*Limit on depth in `eval', `apply' and `funcall' before error.
+
+This limit serves to catch infinite recursions for you before they cause
+actual stack overflow in C, which would be fatal for Emacs.
+You can safely make it considerably larger than its default value,
+if that proves inconveniently small.  However, if you increase it too far,
+Emacs could overflow the real C stack, and crash.")]
+		public static int max_lisp_eval_depth = 1000;
+
+		public int eval_depth = 0;
 	}
 }

@@ -1,6 +1,17 @@
 using System;
 
 namespace Shelisp {
+	public class LispThrown : Exception {
+		public LispThrown (Shelisp.Object tag, Shelisp.Object val)
+		{
+			Tag = tag;
+			Value = val;
+		}
+
+		public Shelisp.Object Tag { get; set; }
+		public Shelisp.Object Value { get; set; }
+	}
+
 	public class LispException : Exception {
 		public LispException (Shelisp.Symbol sym, Shelisp.Object data = null)
 		{

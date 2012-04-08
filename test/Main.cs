@@ -80,7 +80,7 @@ public class Test {
 		Console.WriteLine (L.make_list (L.Qcar, 5).Eval(l));
 #endif
 
-		TestRunner.Initialize (l, false);
+		TestRunner.Initialize (l, true);
 
 		Number number = new Number (5);
 		Assert.That (number, Is.Numberp, "make sure constructor works");

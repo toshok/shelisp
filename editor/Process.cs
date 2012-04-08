@@ -21,15 +21,16 @@ namespace Shemacs.Editor {
 			Vprocess_environment = List.reverse (List.reverse (Vinitial_environment));
 		}
 
-		[LispBuiltin ("process-environment")]
+		[LispBuiltin]
 		public Shelisp.Object Vprocess_environment = L.Qnil;
 
-		[LispBuiltin ("initial-environment")]
+		[LispBuiltin]
 		public Shelisp.Object Vinitial_environment = L.Qnil;
 
-		[LispBuiltin ("getenv-internal", MinArgs = 1)]
-		public Shelisp.Object getenv_internal (L l, Shelisp.Object envvar, Shelisp.Object env)
+		[LispBuiltin]
+		public static Shelisp.Object getenv_internal (L l, Shelisp.Object envvar, [LispOptional] Shelisp.Object env)
 		{
+			Console.WriteLine ("getenv_internal {0}", envvar);
 			return L.Qnil;
 		}
 
@@ -45,6 +46,12 @@ default if SHELL is not set.")]
 		public Shelisp.Object Fuser_full_name (L l)
 		{
 			return (Shelisp.String)"Chris Toshok"; // XXX
+		}
+
+		[LispBuiltin]
+		public static Shelisp.Object Fget_buffer_process (L l, Shelisp.Object buffer)
+		{
+			return L.Qnil;
 		}
 
 		[LispBuiltin (DocString = "The host name of the machine Emacs is running on.")]

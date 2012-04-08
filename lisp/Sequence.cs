@@ -84,7 +84,7 @@ namespace Shelisp {
 		[LispBuiltin]
 		public static Shelisp.Object Fmapcar(L l, Shelisp.Object fun, Shelisp.Object seq)
 		{
-			if (L.Qnil.LispEq (seq))
+			if (L.NILP(seq))
 				return L.Qnil;
 
 			if (!(seq is Sequence))
@@ -93,8 +93,10 @@ namespace Shelisp {
 			Sequence s = (Sequence)seq;
 
 			List<Shelisp.Object> mapped = new List<Shelisp.Object>();
-			foreach (var o in s)
-				mapped.Add(L.make_list (fun, new List (L.Qquote, new List (o, L.Qnil))).Eval (l));
+			foreach (var o in s) {
+				var application = L.make_list (fun, new List (L.Qquote, new List (o, L.Qnil)));
+				mapped.Add(application.Eval (l));
+			}
 
 			return new List (mapped.ToArray());
 		}
@@ -137,6 +139,55 @@ namespace Shelisp {
 			}
 
 			return tail;
+		}
+
+		[LispBuiltin (DocString = @"Delete by side effect any occurrences of ELT as a member of SEQ.
+SEQ must be a list, a vector, or a string.
+The modified SEQ is returned.  Comparison is done with `equal'.
+If SEQ is not a list, or the first member of SEQ is ELT, deleting it
+is not a side effect; it is simply using a different sequence.
+Therefore, write `(setq foo (delete element foo))'
+to be sure of changing the value of `foo'.")]
+		public static Shelisp.Object Fdelete (L l, Shelisp.Object elt, Shelisp.Object seq)
+		{
+			if (seq is Vector) {
+				Vector seqv = (Vector)seq;
+				int i, n;
+
+				for (i = n = 0; i < seqv.Length; ++i)
+					if (!seqv[i].LispEqual (elt))
+						++n;
+
+				if (n != seqv.Length) {
+					Shelisp.Object[] p = new Shelisp.Object[n];
+
+					for (i = n = 0; i < seqv.Length; ++i)
+						if (!seqv[i].LispEqual (elt))
+							p[n++] = seqv[i];
+
+					seqv.SetData (p);
+				}
+			}
+			else if (seq is String) {
+				throw new NotImplementedException ();
+			}
+			else {
+				Shelisp.Object tail, prev;
+
+				for (tail = seq, prev = L.Qnil; L.CONSP (tail); tail = L.CDR (tail)) {
+					// XXX CHECK_LIST_CONS (tail, seq);
+
+					if (elt.LispEqual (L.CAR(tail))) {
+						if (L.NILP (prev))
+							seq = L.CDR (tail);
+						else
+							List.Fsetcdr (l, prev, L.CDR (tail));
+					}
+					else
+						prev = tail;
+				}
+			}
+			return seq;
 		}
 	}
 }

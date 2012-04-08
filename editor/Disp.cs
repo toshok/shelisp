@@ -39,6 +39,23 @@ this variable.")]
 		public static bool use_file_dialog = true;
 
 
+		[LispBuiltin (DocString = @"Name of the window system that Emacs uses for the first frame.
+The value is a symbol:
+ nil for a termcap frame (a character-only terminal),
+ 'x' for an Emacs frame that is really an X window,
+ 'w32' for an Emacs frame that is a window on MS-Windows display,
+ 'ns' for an Emacs frame on a GNUstep or Macintosh Cocoa display,
+ 'pc' for a direct-write MS-DOS frame.
+
+Use of this variable as a boolean is deprecated.  Instead,
+use `display-graphic-p' or any of the other `display-*-p'
+predicates which report frame's specific UI-related capabilities.")]
+		public static Shelisp.Object Vinitial_window_system = L.Qnil;
+
+		[LispBuiltin (DocString = @"The version number of the window system in use.
+For X windows, this is 11.")]
+		public static Shelisp.Object Vwindow_system_version = L.Qnil;
+
 		// this comes from xdisp.c
 		[LispBuiltin (DocString = @"List of variables (symbols) which hold markers for overlay arrows.
 The symbols on this list are examined during redisplay to determine
@@ -46,16 +63,11 @@ where to display overlay arrows.")]
 		public static Shelisp.Object Voverlay_arrow_variable_list = new List (L.intern ("overlay-arrow-position"), L.Qnil);
 
 		// this comes from xdisp.c
-		[LispBuiltin]
-		public static int message_log_max = 100;
+		[LispBuiltin (DocString = @"Marker for where to display an arrow on top of the buffer text.
+This must be the beginning of a line in order to work.
+See also `overlay-arrow-string'.")]
+		public static Shelisp.Object Voverlay_arrow_position = L.Qnil;
 
-		// this comes from xselect.c
-		[LispBuiltin]
-		public static Shelisp.Object Vx_lost_selection_functions = L.Qnil;
-
-		// this comes from xselect.c
-		[LispBuiltin]
-		public static Shelisp.Object Vx_sent_selection_functions = L.Qnil;
 	}
 
 }

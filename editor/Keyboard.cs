@@ -10,6 +10,16 @@ namespace Shemacs.Editor {
 
 		[LispBuiltin]
 		public static Shelisp.Object last_command_event = L.Qnil;
+
+		[LispBuiltin (DocString = @"Character to recognize as meaning Help.
+When it is read, do `(eval help-form)', and display result if it's a string.
+If the value of `help-form' is nil, this char can be read normally.")]
+		public Shelisp.Object Vhelp_char = new Number (Ctl ('H'));
+
+		public static int Ctl (int key)
+		{
+			return key - '@';
+		}
 	}
 
 }

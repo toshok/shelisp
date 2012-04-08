@@ -55,8 +55,7 @@ namespace Shelisp {
 		[LispBuiltin (Unevalled = true)]
 		public static Shelisp.Object Fcond(L l, params Shelisp.Object[] clauses)
 		{
-			for (int i = 0; i < clauses.Length; i ++) {
-				Shelisp.Object clause = clauses[i];
+			foreach (var clause in clauses) {
 				Shelisp.Object condition = L.CAR(clause);
 
 				Shelisp.Object rv = condition.Eval (l);

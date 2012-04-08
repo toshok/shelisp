@@ -33,6 +33,11 @@ in case you use it as a menu with `x-popup-menu'.")]
 					 new List (CharTable.Fmake_char_table (l, L.intern ("keymap"), L.Qnil), tail));
 		}
 
+		[LispBuiltin]
+		public static Shelisp.Object Fkeymapp (L l, Shelisp.Object keymap)
+		{
+			return keymap is Keymap ? L.Qt : L.Qnil;
+		}
 
 		static Shelisp.Object make_sparse_keymap (Shelisp.Object prompt)
 		{
@@ -45,12 +50,39 @@ in case you use it as a menu with `x-popup-menu'.")]
 			return make_sparse_keymap (prompt);
 		}
 
+		static Shelisp.Object current_global_map = L.Qnil;
+
+		[LispBuiltin]
+		public static Shelisp.Object Fcurrent_global_map (L l)
+		{
+			return current_global_map;
+		}
+
 		[LispBuiltin (DocString = @"Modify KEYMAP to set its parent map to PARENT.
 Return PARENT.  PARENT should be nil or another keymap.")]
 		public static Shelisp.Object Fset_keymap_parent (L l, Shelisp.Object keymap, Shelisp.Object parent)
 		{
 			// XXX implement this..
 			return parent;
+		}
+
+		[LispBuiltin (DocString = @"Call FUNCTION once for each event binding in KEYMAP.
+FUNCTION is called with two arguments: the event that is bound, and
+the definition it is bound to.  The event may be a character range.
+
+If KEYMAP has a parent, the parent's bindings are included as well.
+This works recursively: if the parent has itself a parent, then the
+grandparent's bindings are also included and so on.
+usage: (map-keymap FUNCTION KEYMAP)")]
+		public static Shelisp.Object Fmap_keymap (L l, Shelisp.Object function, Shelisp.Object keymap, [LispOptional] Shelisp.Object sort_first)
+		{
+#if notyet
+			if (! NILP (sort_first))
+				return call2 (intern ("map-keymap-sorted"), function, keymap);
+
+			map_keymap (keymap, map_keymap_call, function, NULL, 1);
+#endif
+			return keymap; // XXX
 		}
 
 		[LispBuiltin (DocString = "Default keymap to use when reading from the minibuffer.")]

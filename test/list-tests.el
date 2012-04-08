@@ -56,10 +56,21 @@
 
 (assert-equal (safe-length '(1 2 3 4 5 6)) 6 "safe-length with a normal list == length")
 
+(assert-equal (assoc 1 '((1 . "hi") (2 . "bye") (1 . "hi again"))) '(1 . "hi")  "assoc 1")
+(assert-equal (assoc 1 '((1 "hi") (2 "bye") (1 "hi again"))) '(1 "hi")  "assoc 2")
+(assert-equal (assoc 1 '(1 2 3 4 5)) nil  "assoc 3")
+(assert-equal (assoc 1 nil) nil  "assoc 4")
+
+(assert-equal (rassoc "hi" '((1 . "hi") (2 . "bye") (1 . "hi again"))) '(1 . "hi")  "rassoc 1")
+(assert-equal (rassoc "hi" '((1 "hi") (2 "bye") (1 "hi again"))) nil  "rassoc 2")
+(assert-equal (rassoc '("hi") '((1 "hi") (2 "bye") (1 "hi again"))) '(1 "hi")  "rassoc 3")
+(assert-equal (rassoc 1 '(1 2 3 4 5)) nil  "rassoc 4")
+(assert-equal (rassoc 1 nil) nil  "rassoc 5")
+
 (setq initial-list '(5 4 3 2))
 (setq initial-cdr (cons 1 initial-list))
 (setq initial-list (nconc initial-list initial-cdr))
 (ignore-tests "circular lists in shelisp are kinda lacking at the moment.. the iterator and hashcode stuff needs fixed"
-  (setq initial-list '(5 4 3 2))(assert-equal (safe-length initial-list) 9 "safe-length with a circular list == number of unique cons nodes"))
+  (assert-equal (safe-length initial-list) 9 "safe-length with a circular list == number of unique cons nodes"))
 
 (provide 'list-tests)

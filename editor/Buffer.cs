@@ -217,48 +217,50 @@ even if it is dead.  The return value is never nil.")]
 			return buf;
 		}
 
+		[LispBuiltin (DocString = @"Return a list of all existing live buffers. 
+If the optional arg FRAME is a frame, we return the buffer list in the
+proper order for that frame: the buffers show in FRAME come first,
+followed by the rest of the buffers.")]
+			public static Shelisp.Object Fbuffer_list (L l, [LispOptional] Shelisp.Object frame)
+			{
+#if emacs_impl
+				Lisp.Object general = List.Fmapcar (L.Qcdr, L.Vbuffer_alist);
+
+				if (L.FRAMEP (frame)) {
+					Lisp.Object framelist, prevlist, tail;
+
+					//CHECK_FRAME (frame);
+					framelist = L.Fcopy_sequence (L.XFRAME (frame).buffer_list);
+					prevlist = L.Fnreverse (L.Fcopy_sequence,
+								(L.XFRAME (frame).buried_buffer_list));
+
+					/* Remove from GENERAL any buffer that duplicates one in
+					   FRAMELIST or PREVLIST.  */
+					tail = framelist;
+					while (L.CONSP (tail)) {
+						general = L.Fdelq (L.XCAR (tail), general);
+						tail = L.XCDR (tail);
+					}
+					tail = prevlist;
+					while (L.CONSP (tail)) {
+						general = L.Fdelq (L.XCAR (tail), general);
+						tail = L.XCDR (tail);
+					}
+
+					return L.Fnconc (new Lisp.Object[] {
+							framelist,
+							general,
+							prevlist
+						});
+				}
+				else
+					return general;
+#else
+				Console.WriteLine ("buffer-list is not implemented"); return L.Qnil;
+#endif
+			}
+
 #if notyet
-		public static Func<Lisp.Object,Lisp.Object> Fbuffer_list;
-		public static Lisp.Subr Sbuffer_list = L.DEFUN<Lisp.Object,Lisp.Object> (lisp_name: "buffer-list",
-											 doc:  "Return a list of all existing live buffers. " +
-											 "If the optional arg FRAME is a frame, we return the buffer list in the " +
-											 "proper order for that frame: the buffers show in FRAME come first," +
-											 "followed by the rest of the buffers.",
-											 min_args: 1,
-											 func: Fbuffer_list = (Lisp.Object frame) => {
-												 Lisp.Object general = List.Fmapcar (L.Qcdr, L.Vbuffer_alist);
-
-												 if (L.FRAMEP (frame)) {
-													 Lisp.Object framelist, prevlist, tail;
-
-													 //CHECK_FRAME (frame);
-													 framelist = L.Fcopy_sequence (L.XFRAME (frame).buffer_list);
-													 prevlist = L.Fnreverse (L.Fcopy_sequence,
-																 (L.XFRAME (frame).buried_buffer_list));
-
-													 /* Remove from GENERAL any buffer that duplicates one in
-													    FRAMELIST or PREVLIST.  */
-													 tail = framelist;
-													 while (L.CONSP (tail)) {
-														 general = L.Fdelq (L.XCAR (tail), general);
-														 tail = L.XCDR (tail);
-													 }
-													 tail = prevlist;
-													 while (L.CONSP (tail)) {
-														 general = L.Fdelq (L.XCAR (tail), general);
-														 tail = L.XCDR (tail);
-													 }
-
-													 return L.Fnconc (new Lisp.Object[] {
-															 framelist,
-															 general,
-															 prevlist
-														 });
-												 }
-												 else
-													 return general;
-											 });
-
 		public static Func<Lisp.Object,Lisp.Object> Fget_file_buffer;
 		public static Lisp.Subr Sget_file_buffer = L.DEFUN<Lisp.Object,Lisp.Object> (lisp_name: "get-file-buffer",
 											     doc: "Return the buffer visiting file FILENAME (a string)." +
@@ -526,6 +528,12 @@ even if it is dead.  The return value is never nil.")]
 			this.name = name;
 		}
 
+		[LispBuiltin]
+		public static Shelisp.Object Fcurrent_buffer (L l)
+		{
+			return Buffer.CurrentBuffer;
+		}
+
 		public static Buffer CurrentBuffer { get; set; }
 
 		public static Buffer BufferDefaults { get; set; }
@@ -735,7 +743,13 @@ even if it is dead.  The return value is never nil.")]
 		public Shelisp.Object name;
 
 		/* The name of the file visited in this buffer, or nil.  */
-		Shelisp.Object filename;
+		public Shelisp.Object filename = L.Qnil;
+		[LispBuiltin]
+		public static Shelisp.Object Vbuffer_file_name {
+			get { return Buffer.CurrentBuffer.filename; }
+			set { Buffer.CurrentBuffer.filename = value; }
+		}
+
 		/* Dir for expanding relative file names.  */
 		Shelisp.Object directory;
 		/* True if this buffer has been backed up (if you write to the
@@ -906,8 +920,13 @@ even if it is dead.  The return value is never nil.")]
 
 		/* Non-nil means the buffer contents are regarded as multi-byte
 		   form of characters, not a binary code.  */
-		Shelisp.Object enable_multibyte_characters;
+		Shelisp.Object enable_multibyte_characters = L.Qt;
 
+		[LispBuiltin]
+		public static Shelisp.Object Venable_multibyte_characters {
+			get { return Buffer.CurrentBuffer.enable_multibyte_characters; }
+			set { Buffer.CurrentBuffer.enable_multibyte_characters = value; }
+		}
 		/* Coding system to be used for encoding the buffer contents on
 		   saving.  */
 		Shelisp.Object buffer_file_coding_system;

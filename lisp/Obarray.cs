@@ -1,3 +1,5 @@
+//#define VERIFY_LOOKUPS
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,6 +8,10 @@ using System.Text;
 
 namespace Shelisp {
 	public static class Obarray {
+#if VERIFY_LOOKUPS
+		static Dictionary<string,Shelisp.Symbol> dict = new Dictionary<string,Shelisp.Symbol>();
+#endif
+
 		private static int oblookup_last_bucket_number;
 		private static Shelisp.Object oblookup (Vector obarray, string str)
 		{
@@ -24,14 +30,22 @@ namespace Shelisp {
 
 			if (Number.IsInt (bucket) && Number.ToInt (bucket) == 0) {
 				/* empty */;
+#if VERIFY_LOOKUPS
+				if (dict.ContainsKey(str)) throw new Exception ("obarray verification failed: object should be in obarray but isn't");
+#endif
 			}
 			else if (!(bucket is Symbol))
 				throw new LispErrorException ("Bad data in guts of obarray"); /* Like CADR error message */
 			else {
 				Shelisp.Symbol tail = (Symbol)bucket;
 				while (tail != null) {
-					if (tail.name == str)
+					if (tail.name == str) {
+#if VERIFY_LOOKUPS
+						var ver = dict[str]; if (ver != tail) throw new Exception ("obarray verification failed");
+#endif
+
 						return tail;
+					}
 					tail = tail.next;
 				}
 			}
@@ -42,8 +56,11 @@ namespace Shelisp {
 		{
 			var existing = oblookup (obarray, str);
 
-			if (existing is Symbol)
+			if (existing is Symbol) {
+				if (((Symbol)existing).name != str)
+					throw new Exception ("postcondition fail");
 				return (Shelisp.Symbol)existing;
+			}
 
 			/* it doesn't exist in the obarray, we need to add it */
 			Shelisp.Symbol sym = new Shelisp.Symbol (str);
@@ -52,6 +69,9 @@ namespace Shelisp {
 			if (!(Number.IsInt (obarray[bucket_num])))
 				sym.next = (Shelisp.Symbol)obarray[bucket_num];
 			obarray[bucket_num] = sym;
+#if VERIFY_LOOKUPS
+			dict.Add (str, sym);
+#endif
 
 			return sym;
 		}
@@ -70,6 +90,8 @@ namespace Shelisp {
 		{
 			var existing = oblookup (obarray, str);
 			if (existing is Symbol) {
+				if (((Symbol)existing).name != str)
+					throw new Exception ("postcondition fail");
 				Symbol sym = (Symbol)existing;
 				if (sym.name == str) {
 					// the head of the bucket is what we were looking for, remove it.
@@ -91,6 +113,9 @@ namespace Shelisp {
 						tail = tail.next;
 					}
 				}
+#if VERIFY_LOOKUPS
+				dict.Remove (str);
+#endif
 			}
 
 			return L.Qnil;

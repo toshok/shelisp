@@ -10,6 +10,19 @@ namespace Shemacs.Editor {
 		public Shelisp.Object buffer_list;
 		public Shelisp.Object buried_buffer_list;
 
+		public static Shelisp.Object Vframe_list = L.Qnil;
+
+		[LispBuiltin (DocString = "Return a list of all live frames.")]
+		public static Shelisp.Object Fframe_list (L l)
+		{
+			var frames = Sequence.Fcopy_sequence (l, Vframe_list);
+#if HAVE_WINDOW_SYSTEM
+			if (FRAMEP (tip_frame))
+				frames = Fdelq (tip_frame, frames);
+#endif
+			return frames;
+		}
+
 		[LispBuiltin (DocString = @"Non-nil if window system changes focus when you move the mouse.
 You should set this variable to tell Emacs how your window manager
 handles focus, since there is no way in general for Emacs to find out

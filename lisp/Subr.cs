@@ -23,14 +23,8 @@ namespace Shelisp {
 
 		public Object Call (L l, Object[] args)
 		{
-			if (args.Length < min_args) {
-				Console.WriteLine ("subr we're calling is {0}", this);
-				foreach (var arg in args) {
-					Console.WriteLine (" + {0}", arg);
-				}
-
+			if (args.Length < min_args)
 				throw new ArgumentException ("arg length");
-			}
 
 			var parameters = method.GetParameters();
 
@@ -72,6 +66,11 @@ namespace Shelisp {
 				Console.WriteLine (e);
 				throw;
 			}
+			catch (TargetException e) {
+				Console.WriteLine ("subr = {0}", this);
+				Console.WriteLine ("exception {0}", e);
+				throw;
+			}
  			catch (TargetInvocationException e) {
 #if DEBUG
  				Console.WriteLine ("Exception raised while invoking {0}", this);
@@ -89,7 +88,7 @@ namespace Shelisp {
  			}
 		}
 
-		public override string ToString ()
+		public override string ToString (string format_type)
 		{
 #if VERBOSE_SUBR_FORMAT
 			return string.Format ("#<subr {0},{1}.{2}()>", name, method.DeclaringType.FullName, method.Name);

@@ -28,6 +28,11 @@ namespace Shelisp {
 			set { data[index] = value; }
 		}
 
+		internal void SetData (Shelisp.Object[] newData)
+		{
+			data = newData;
+		}
+
 		public override IEnumerator<Shelisp.Object> GetEnumerator ()
 		{
 			for (int i = 0; i < data.Length; i ++)

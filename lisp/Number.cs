@@ -354,7 +354,7 @@ namespace Shelisp {
 		}
 	
 		[LispBuiltin]
-		public static Shelisp.Object Flogior (L l, params Shelisp.Object[] ints_or_markers)
+		public static Shelisp.Object Flogior (L l, [LispRest] params Shelisp.Object[] ints_or_markers)
 		{
 			int result = 0;
 			foreach (var obj in ints_or_markers) {
@@ -406,6 +406,56 @@ namespace Shelisp {
 			int count_i = Number.ToInt (count);
 
 			return new Number (integer1_i << count_i);
+		}
+
+		[LispBuiltin (MinArgs = 1)]
+		public static Shelisp.Object Fmin (L l, [LispRest] params Shelisp.Object[] ints_or_markers)
+		{
+			int min = Int32.MaxValue;
+
+			foreach (var obj in ints_or_markers) {
+				if (Number.IsInt(obj)) {
+					int i = Number.ToInt (obj);
+					if (i < min)
+						min = i;
+				}
+#if EDITOR
+				else if (obj is Shelisp.Editor.Marker) {
+					int i = ((Marker)obj).Position;
+					if (i < min)
+						min = i;
+				}
+#endif
+				else {
+					throw new WrongTypeArgumentException ("int-or-marker-p", obj);
+				}
+			}
+			return new Number (min);
+		}
+
+		[LispBuiltin (MinArgs = 1)]
+		public static Shelisp.Object Fmax (L l, [LispRest] params Shelisp.Object[] ints_or_markers)
+		{
+			int max = Int32.MinValue;
+
+			foreach (var obj in ints_or_markers) {
+				if (Number.IsInt(obj)) {
+					int i = Number.ToInt (obj);
+					if (i > max)
+						max = i;
+				}
+#if EDITOR
+				else if (obj is Shelisp.Editor.Marker) {
+					int i = ((Marker)obj).Position;
+					if (i > max)
+						max = i;
+				}
+#endif
+				else {
+					throw new WrongTypeArgumentException ("int-or-marker-p", obj);
+				}
+			}
+			return new Number (max);
 		}
 	}
 

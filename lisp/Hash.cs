@@ -25,20 +25,38 @@ namespace Shelisp {
 
 			this.count = 0;
 			// map weakness to our enum
-			if (L.NILP (weakness))
+			if (L.NILP (weakness)) {
 				weakness_ = Weakness.None;
-			else if (weakness.LispEq (L.Qt))
+			}
+			else if (weakness.LispEq (L.Qt)) {
 				weakness_ = Weakness.KeyAndValue;
-			else if (weakness.LispEq (L.Qkey))
+			}
+			else if (weakness.LispEq (L.Qkey)) {
 				weakness_ = Weakness.Key;
-			else if (weakness.LispEq (L.Qvalue))
+			}
+			else if (weakness.LispEq (L.Qvalue)) {
 				weakness_ = Weakness.Value;
-			else if (weakness.LispEq (L.Qkey_or_value))
+			}
+			else if (weakness.LispEq (L.Qkey_or_value)) {
 				weakness_ = Weakness.KeyOrValue;
-			else if (weakness.LispEq (L.Qkey_and_value))
+			}
+			else if (weakness.LispEq (L.Qkey_and_value)) {
 				weakness_ = Weakness.KeyAndValue;
+			}
 			else
 				throw new Exception (string.Format ("invalid weakness {0}", weakness));
+
+			compare = null;
+			// use a builtin comparison function for the builtin test types
+			if (test.LispEq (L.intern ("eq"))) {
+				compare = compare_eq;
+			}
+			else if (test.LispEq (L.intern ("eql"))) {
+				compare = compare_eql;
+			}
+			else if (test.LispEqual (L.intern ("equal"))) {
+				compare = compare_equal;
+			}
 
 			table = new Tuple<Shelisp.Object,Shelisp.Object>[(int)((Number)size).boxed];
 		}
@@ -57,6 +75,23 @@ namespace Shelisp {
 		private Shelisp.Object size;
 		private Shelisp.Object rehash_size;
 		private Shelisp.Object rehash_threshold;
+
+		private Func<Shelisp.Object, Shelisp.Object, long, long, bool> compare;
+
+		private static bool compare_eq (Shelisp.Object obj1, Shelisp.Object obj2, long hash1, long hash2)
+		{
+			return obj1.LispEq (obj2);
+		}
+
+		private static bool compare_eql (Shelisp.Object obj1, Shelisp.Object obj2, long hash1, long hash2)
+		{
+			return obj1.LispEql (obj2);
+		}
+
+		private static bool compare_equal (Shelisp.Object obj1, Shelisp.Object obj2, long hash1, long hash2)
+		{
+			return hash1 == hash2 && obj1.LispEqual (obj2);
+		}
 
 		/*
 		  — Function: make-hash-table &rest keyword-args
@@ -204,21 +239,23 @@ namespace Shelisp {
 		
 		private int GetIndex (Shelisp.Object key)
 		{
-			long hash = (long)(uint)sxhash (key);
-			int start = (int)(hash % table.Length);
+			long key_hash = (long)(uint)sxhash (key);
+			int start = (int)(key_hash % table.Length);
 
 			int i = start;
 
 			do {
 				if (table[i] == null)
 					return i;
-				var list = new List (new Shelisp.Object[] { test, table[i].Item1, key });
-				Debug.Print ("invoking test with {0}", list);
-				var test_rv = list.Eval(l);
-				Debug.Print ("test result = {0}", test_rv);
-				if (!L.NILP (test_rv))
+
+				long item1_hash = (long)(uint)sxhash (table[i].Item1);
+
+				if (compare (key, table[i].Item1, key_hash, item1_hash)) {
 					return i;
+				}
+
 				i = (i + 1) % table.Length;
+
 			} while (i != start);
 
 			throw new Exception ("hash table is full and wasn't rehashed?");

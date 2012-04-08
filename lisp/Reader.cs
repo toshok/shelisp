@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Shelisp {
 	public static class Reader {
-		class StringPositionReader : StringReader {
+		class StringPositionReader : StreamReader {
 			public StringPositionReader (string str)
 				: base (str)
 			{
@@ -51,21 +51,20 @@ namespace Shelisp {
 
 		}
 
-#if false
-		public static Shelisp.Object Read (string s)
+		public static Shelisp.Object ReadFromString (string s)
 		{
 			int unused;
-			return Read (s, out unused);
+			return ReadFromString (s, out unused);
 		}
 
-		public static Shelisp.Object Read (string s, out int end_position)
+		public static Shelisp.Object ReadFromString (string s, out int end_position)
 		{
-			var sr = new StringPositionReader (s);
+			var ms = new MemoryStream (Encoding.UTF8.GetBytes (s));
+			var sr = new StreamReader (ms);
 			var obj = Read (sr);
-			end_position = sr.Position;
+			end_position = (int)ms.Position; // this is totally wrong.  it's a byte position, not a character one
 			return obj;
 		}
-#endif
 
 		public static Shelisp.Object Read (StreamReader s, char valid_end = (char)0)
 		{
@@ -185,9 +184,18 @@ namespace Shelisp {
 						case 'x': // unicode codepoint
 							s.Read(); // consume the x
 							return new Number (ReadHexNumber (s));
+						case 'o': // octal constant
+							s.Read(); // consume the o
+							return new Number (ReadOctalNumber (s));
+						case 'b': // binary constant
+							s.Read(); // consume the 'b'
+							return new Number (ReadBinaryNumber (s));
+						case '0': case '1': case '2': case '3': case '4': case '5':
+						case '6': case '7': case '8': case '9':
+							return new Number (ReadRadixNumber (s));
 						case '\'': // anonymous functions
 							s.Read(); // consume the '
-							goto start; 
+							return new List (L.intern ("function"), new List (Read(s, valid_end), L.Qnil));
 						default:
 							throw new LispInvalidReadSyntaxException (string.Format ("#{0}", ch));
 						}
@@ -251,8 +259,9 @@ namespace Shelisp {
 			return value;
 		}
 
-		static int ReadOctalNumber (TextReader s, int value)
+		static int ReadOctalNumber (TextReader s)
 		{
+			int value = 0;
 			while (true) {
 				char ch = (char)s.Peek();
 				if (ch >= '0' && ch <= '7') {
@@ -264,6 +273,28 @@ namespace Shelisp {
 			}
 
 			return value;
+		}
+
+		static int ReadBinaryNumber (TextReader s)
+		{
+			int value = 0;
+			int hex_digit;
+
+			char ch;
+			while (true) {
+				ch = (char)s.Peek();
+				if (ch != '0' && ch != '1')
+					break;
+				s.Read();
+				value = (value << 1) + ch - '0';
+			}
+
+			return value;
+		}
+
+		static int ReadRadixNumber (TextReader s)
+		{
+			throw new NotImplementedException ();
 		}
 
 		static int ReadCharacterLiteralAsNumber (TextReader s)
@@ -384,7 +415,7 @@ namespace Shelisp {
 					return ch | 0x1000000;
 				}
 				case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': {
-					return ReadOctalNumber (s, ch - '0');
+					return ReadOctalNumber (s);
 				}
 				default:
 					return ReturnCharOrThrow (s, ch);
@@ -537,5 +568,19 @@ variables, this must be set in the first line of a file.")]
 
 		[LispBuiltin (DocString = @"Used for internal purposes by `load'.")]
 		public static Shelisp.Object Vcurrent_load_list = L.Qnil;
+
+		[LispBuiltin (DocString = @"An alist of expressions to be evalled when particular files are loaded.
+Each element looks like (REGEXP-OR-FEATURE FORMS...).
+
+REGEXP-OR-FEATURE is either a regular expression to match file names, or
+a symbol \(a feature name).
+
+When `load' is run and the file-name argument matches an element's
+REGEXP-OR-FEATURE, or when `provide' is run and provides the symbol
+REGEXP-OR-FEATURE, the FORMS in the element are executed.
+
+An error in FORMS does not undo the load, but does prevent execution of
+the rest of the FORMS.")]
+		public static Shelisp.Object Vafter_load_alist = L.Qnil;
 	}
 }

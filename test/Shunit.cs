@@ -43,13 +43,16 @@ namespace Shunit {
 		[LispBuiltin ("number-of-tests")]
 		public static int NumberOfTests = 0;
 
+		[LispBuiltin ("number-of-ignored-tests")]
+		public static int NumberOfIgnoredTests = 0;
+
 		[LispBuiltin ("failed-tests")]
 		public static Shelisp.Object FailedTests = L.Qnil;
 
 		public static void GenerateReport ()
 		{
 			Console.WriteLine ();
-			Console.WriteLine ("ran {0} tests, {1} failures", NumberOfTests, L.NILP(FailedTests) ? 0 : ((List)FailedTests).Length);
+			Console.WriteLine ("ran {0} tests, {1} failures, {2} ignored tests.", NumberOfTests, L.NILP(FailedTests) ? 0 : ((List)FailedTests).Length, NumberOfIgnoredTests);
 		}
 	}
 

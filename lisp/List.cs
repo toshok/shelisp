@@ -36,240 +36,263 @@ namespace Shelisp {
 
 		public override Shelisp.Object Eval (L l, Shelisp.Object env = null)
 		{
-			env = env ?? l.Environment;
+			try {
+				if (l.eval_depth ++ >= L.max_lisp_eval_depth)
+					throw new Exception ("max eval depth exceeded");
 
-			Debug.Print (this);
+				env = env ?? l.Environment;
 
-			// function evaluation gets stuffed in here unfortunately
-			Object first = L.CAR(this);
-			Object rest = L.CDR(this);
+				Debug.Print (this);
 
-			Shelisp.Object fun = first;
+				// function evaluation gets stuffed in here unfortunately
+				Object first = L.CAR(this);
+				Object rest = L.CDR(this);
 
-			retry:
+				Shelisp.Object fun = first;
 
-			if (first is Symbol) {
-				Debug.Print ("first is {0}", first);
-				Shelisp.Object lex_binding = List.Fassq (l, first, env);
-				if (!L.NILP (lex_binding)) {
-					var binding = L.CDR (lex_binding);
-					if (binding is Symbol && !(L.Qunbound.LispEq (((Symbol)binding).Function)))
-						fun = ((Symbol)binding).Function;
-				}
+				retry:
 
-				if (fun is Symbol) {
-					fun = L.Findirect_function (l, fun);
-					Debug.Print ("first was a symbol, function = {0}", fun);
-				}
-			}
-
-			if (fun == null) {
-				throw new Exception (string.Format ("fun is null, symbol is {0}", first));
-			}
-
-			if (fun is Subr) {
-				Subr subr = (Subr)fun;
-				Shelisp.Object[] args;
-
-				L.EvalSpew ("evaluating subr application, {0}", fun);
-
-				if (!L.LISTP(rest))
-					throw new WrongTypeArgumentException ("listp", rest);
-				if (L.NILP (rest)) {
-					args = new Shelisp.Object[0];
-				}
-				else {
-					Shelisp.List rest_list = L.CONS(rest);
-					args = new Shelisp.Object[rest_list.Length];
-					int argnum = 0;
-					if (subr.unevalled) {
-						Debug.Print ("   unevalled args");
-					}
-					else {
-						Debug.Print ("   evalled args");
+#if my_stupid_way
+				if (first is Symbol) {
+					Debug.Print ("first is {0}", first);
+					Shelisp.Object lex_binding = List.Fassq (l, first, env);
+					if (!L.NILP (lex_binding)) {
+						var binding = L.CDR (lex_binding);
+						if (binding is Symbol && !(L.Qunbound.LispEq (((Symbol)binding).Function)))
+							fun = ((Symbol)binding).Function;
 					}
 
-					L.EvalIndent(1);
-					foreach (var o in rest_list) {
-						L.EvalSpew ("arg: {0}", o);
-						if (subr.unevalled) {
-							args[argnum++] = o;
-						}
-						else {
-							var evalled = o.Eval (l, env);
-							if (L.Qunbound.LispEq (evalled))
-								throw new Exception (string.Format ("form {0} evaluated to unbound.  this is NOT what you want", o));
-							args[argnum++] = evalled;
-						}
+					if (fun is Symbol) {
+						fun = L.Findirect_function (l, fun);
+						Debug.Print ("first was a symbol, function = {0}", fun);
 					}
-					L.EvalOutdent(1);
 				}
-
-				try {
-					L.EvalIndent();
-					Shelisp.Object rv = ((Subr)fun).Call (l, args);
-					L.EvalOutdent();
-					L.EvalSpew ("evaluating of {0} resulted in {1}", fun, rv);
-					return rv;
-				}
-				catch {
-					Debug.Print ("at lisp {0}", fun);
-					throw;
-				}
-			}
-			else {
-				if (L.NILP (fun))
-					throw new LispVoidFunctionException (first);
-				if (!L.LISTP (fun))
-					throw new LispInvalidFunctionException (first);
-				Shelisp.Object funcar = L.CAR (fun);
-				if (!(funcar is Symbol)) {
-					throw new LispInvalidFunctionException (first);
-				}
-				if (funcar.LispEq (L.Qautoload)) {
-					FileIO.DoAutoload (l, fun, first);
-					goto retry;
-				}
-#if notyet
-				if (EQ (funcar, Qmacro))
-					val = eval_sub (apply1 (Fcdr (fun), original_args));
-				else if (EQ (funcar, Qlambda)
-					 || EQ (funcar, Qclosure))
-					val = apply_lambda (fun, original_args);
-				else
-					xsignal1 (Qinvalid_function, original_fun);
 #else
-				if (funcar.LispEq (L.Qmacro)) {
-					L.EvalSpew ("evaluating macro application, {0} = {1}, ", first, L.CDR(fun));
-					L.EvalIndent(1);
-					foreach (var r in (List)rest)
-						L.EvalSpew ("arg: {0}", r);
-					L.EvalOutdent(1);
-
-					L.EvalIndent();
-					var expanded = List.ApplyLambda (l, L.CDR(fun), rest, env, false);
-					L.EvalOutdent();
-
-					L.EvalSpew ("macro {0} expanded to {1}", first, expanded);
-
-					var expanded_evalled = expanded.Eval (l, env);
-					L.EvalSpew ("evaluating of {0} resulted in {1}", first, expanded_evalled);
-
-					return expanded_evalled;
-				}
-				if (funcar.LispEq (L.Qlambda)
-				    || funcar.LispEq (L.Qclosure)) {
-
-					L.EvalSpew ("evaluating function application, {0} = {1}, ", first, L.CDR(fun));
-					if (L.CONSP(rest)) {
-						L.EvalIndent (1);
-						foreach (var r in (List)rest)
-							L.EvalSpew ("arg: {0}", r);
-						L.EvalOutdent (1);
-					}
-
-					L.EvalIndent();
-					var rv = List.ApplyLambda (l, fun, rest, env);
-					L.EvalOutdent();
-
-					L.EvalSpew ("evaluating of {0} resulted in {1}", first, rv);
-
-					return rv;
-				}
-				else {
-					throw new LispInvalidFunctionException (first);
+				fun = first;
+				if ((fun is Symbol) && !fun.LispEq (L.Qunbound)) {
+					fun = ((Symbol)fun).Function;
+					if (fun is Symbol)
+						fun = L.Findirect_function (l, fun, L.Qnil);
 				}
 #endif
+
+				if (fun is Subr) {
+					Subr subr = (Subr)fun;
+					Shelisp.Object[] args;
+
+					L.EvalSpew ("evaluating subr application, {0}", fun);
+
+					if (!L.LISTP(rest))
+						throw new WrongTypeArgumentException ("listp", rest);
+					if (L.NILP (rest)) {
+						args = new Shelisp.Object[0];
+					}
+					else {
+						Shelisp.List rest_list = L.CONS(rest);
+						args = new Shelisp.Object[rest_list.Length];
+						int argnum = 0;
+						if (subr.unevalled) {
+							Debug.Print ("   unevalled args");
+						}
+						else {
+							Debug.Print ("   evalled args");
+						}
+
+						L.EvalIndent(1);
+						foreach (var o in rest_list) {
+							L.EvalSpew ("arg: {0}", o);
+							if (subr.unevalled) {
+								args[argnum++] = o;
+							}
+							else {
+								var evalled = o.Eval (l, env);
+								if (L.Qunbound.LispEq (evalled))
+									throw new Exception (string.Format ("form {0} evaluated to unbound.  this is NOT what you want", o));
+								args[argnum++] = evalled;
+							}
+						}
+						L.EvalOutdent(1);
+					}
+
+					try {
+						L.EvalIndent();
+						Shelisp.Object rv = ((Subr)fun).Call (l, args);
+						L.EvalOutdent();
+						L.EvalSpew ("evaluating of {0} resulted in {1}", fun, rv);
+						return rv;
+					}
+					catch {
+						Debug.Print ("at lisp {0}", fun);
+						throw;
+					}
+				}
+				else {
+					if (L.NILP (fun) || fun.LispEq(L.Qunbound)) {
+						Console.WriteLine ("entire application is {0}", this);
+						throw new LispVoidFunctionException (first);
+					}
+					if (!L.LISTP (fun))
+						throw new LispInvalidFunctionException (first);
+					Shelisp.Object funcar = L.CAR (fun);
+					if (!(funcar is Symbol)) {
+						throw new LispInvalidFunctionException (first);
+					}
+					if (funcar.LispEq (L.Qautoload)) {
+						FileIO.DoAutoload (l, fun, first);
+						goto retry;
+					}
+#if notyet
+					if (EQ (funcar, Qmacro))
+						val = eval_sub (apply1 (Fcdr (fun), original_args));
+					else if (EQ (funcar, Qlambda)
+						 || EQ (funcar, Qclosure))
+						val = apply_lambda (fun, original_args);
+					else
+						xsignal1 (Qinvalid_function, original_fun);
+#else
+					if (funcar.LispEq (L.Qmacro)) {
+						L.EvalSpew ("evaluating macro application, {0} = {1}, ", first, L.CDR(fun));
+						L.EvalIndent(1);
+						foreach (var r in (List)rest)
+							L.EvalSpew ("arg: {0}", r);
+						L.EvalOutdent(1);
+
+						L.EvalIndent();
+						var expanded = List.ApplyLambda (l, L.CDR(fun), rest, env, false);
+						L.EvalOutdent();
+
+						L.EvalSpew ("macro {0} expanded to {1}", first, expanded);
+
+						var expanded_evalled = expanded.Eval (l, env);
+						L.EvalSpew ("evaluating of {0} resulted in {1}", first, expanded_evalled);
+
+						return expanded_evalled;
+					}
+					if (funcar.LispEq (L.Qlambda)
+					    || funcar.LispEq (L.Qclosure)) {
+
+						L.EvalSpew ("evaluating function application, {0} = {1}, ", first, L.CDR(fun));
+						if (L.CONSP(rest)) {
+							L.EvalIndent (1);
+							foreach (var r in (List)rest)
+								L.EvalSpew ("arg: {0}", r);
+							L.EvalOutdent (1);
+						}
+
+						L.EvalIndent();
+						var rv = List.ApplyLambda (l, fun, rest, env);
+						L.EvalOutdent();
+
+						L.EvalSpew ("evaluating of {0} resulted in {1}", first, rv);
+
+						return rv;
+					}
+					else {
+						throw new LispInvalidFunctionException (first);
+					}
+#endif
+				}
+			}
+			finally {
+				l.eval_depth --;
 			}
 		}
 
 		public static Shelisp.Object ApplyLambda (L l, Shelisp.Object fun, Shelisp.Object args, [LispOptional] Shelisp.Object env, bool eval_args = true)
 		{
-// 			Console.WriteLine ("in ApplyLambda, fun = {0}, args = {1}, eval_args = {2}", fun, args, eval_args);
-// 			Console.WriteLine (Environment.StackTrace);
+			try {
+				if (l.eval_depth ++ >= L.max_lisp_eval_depth)
+					throw new Exception ("max eval depth exceeded");
 
-			if (env == null) env = l.Environment;
+				// 			Console.WriteLine ("in ApplyLambda, fun = {0}, args = {1}, eval_args = {2}", fun, args, eval_args);
+				// 			Console.WriteLine (Environment.StackTrace);
 
-			if (!L.CONSP(fun))
-				Console.WriteLine ("{0} is not a cons cell!  we're about to die!", fun);
+				if (env == null) env = l.Environment;
 
-			if (L.CAR(fun).LispEq (L.Qclosure)) {
-				// this sets fun = ( environment args rest... ) where args rest... came from the original lambda.
-				// so the cdr below meant to skip the lambda actually skips the environment.
-				fun = L.CDR(fun);
-				env = L.CAR(fun);
-			}
+				if (!L.CONSP(fun))
+					Console.WriteLine ("{0} is not a cons cell!  we're about to die!", fun);
 
-			Shelisp.Object rest = L.CDR (fun); // get rid of the lambda
+				if (L.CAR(fun).LispEq (L.Qclosure)) {
+					// this sets fun = ( environment args rest... ) where args rest... came from the original lambda.
+					// so the cdr below meant to skip the lambda actually skips the environment.
+					fun = L.CDR(fun);
+					env = L.CAR(fun);
+				}
 
-			Shelisp.Object arg_names = L.CAR(rest);
+				Shelisp.Object rest = L.CDR (fun); // get rid of the lambda
 
-			Shelisp.Object body = L.CDR (rest);
+				Shelisp.Object arg_names = L.CAR(rest);
 
-			/* evaluate each of the arguments in the current environment, then add them to the environment and evaluate the body of the lambda */
-			Shelisp.Object lexenv = env;
+				Shelisp.Object body = L.CDR (rest);
 
-			if (L.CONSP (arg_names)) {
-				IEnumerator<Shelisp.Object> argname_enumerator = ((List)arg_names).GetEnumerator();
-				IEnumerator<Shelisp.Object> arg_enumerator = L.NILP (args) ? (new List<Shelisp.Object>()).GetEnumerator() : ((List)args).GetEnumerator();
+				/* evaluate each of the arguments in the current environment, then add them to the environment and evaluate the body of the lambda */
+				Shelisp.Object lexenv = env;
 
-				bool optional_seen = false;
-				bool rest_seen = false;
-				while (argname_enumerator.MoveNext()) {
-					if (((Symbol)argname_enumerator.Current).name == "&optional") {
-						optional_seen = true;
-						continue;
-					}
-					if (((Symbol)argname_enumerator.Current).name == "&rest") {
-						rest_seen = true;
-						continue;
-					}
+				if (L.CONSP (arg_names)) {
+					IEnumerator<Shelisp.Object> argname_enumerator = ((List)arg_names).GetEnumerator();
+					IEnumerator<Shelisp.Object> arg_enumerator = L.NILP (args) ? (new List<Shelisp.Object>()).GetEnumerator() : ((List)args).GetEnumerator();
 
-					if (rest_seen) {
-						// gather up the rest of the args into a single list, add it to the lexenv using the current argname,
-						// and break out of the loop
-						List<Shelisp.Object> list = new List<Shelisp.Object>();
-						while (arg_enumerator.MoveNext())
-							list.Add (eval_args ? arg_enumerator.Current.Eval (l, env) : arg_enumerator.Current);
-						Shelisp.Object rest_args = list.Count == 0 ? L.Qnil : new List(list.ToArray());
-						lexenv = new List (new List (argname_enumerator.Current, rest_args), lexenv);
-						break;
-					}
-					else if (optional_seen) {
-						// if there is nothing else in arg_enumerator, set parameters to nil
-						if (!arg_enumerator.MoveNext()) {
-							lexenv = new List (new List (argname_enumerator.Current, L.Qnil), lexenv);
+					bool optional_seen = false;
+					bool rest_seen = false;
+					while (argname_enumerator.MoveNext()) {
+						if (((Symbol)argname_enumerator.Current).name == "&optional") {
+							optional_seen = true;
 							continue;
 						}
+						if (((Symbol)argname_enumerator.Current).name == "&rest") {
+							rest_seen = true;
+							continue;
+						}
+
+						if (rest_seen) {
+							// gather up the rest of the args into a single list, add it to the lexenv using the current argname,
+							// and break out of the loop
+							List<Shelisp.Object> list = new List<Shelisp.Object>();
+							while (arg_enumerator.MoveNext())
+								list.Add (eval_args ? arg_enumerator.Current.Eval (l, env) : arg_enumerator.Current);
+							Shelisp.Object rest_args = list.Count == 0 ? L.Qnil : new List(list.ToArray());
+							lexenv = new List (new List (argname_enumerator.Current, rest_args), lexenv);
+							break;
+						}
+						else if (optional_seen) {
+							// if there is nothing else in arg_enumerator, set parameters to nil
+							if (!arg_enumerator.MoveNext()) {
+								lexenv = new List (new List (argname_enumerator.Current, L.Qnil), lexenv);
+								continue;
+							}
+						}
+						else {
+							if (!arg_enumerator.MoveNext())
+								throw new Exception ("not enough args");
+						}
+
+						lexenv = new List (new List (argname_enumerator.Current, eval_args ? arg_enumerator.Current.Eval (l, env) : arg_enumerator.Current), lexenv);
 					}
-					else {
-						if (!arg_enumerator.MoveNext())
-							throw new Exception ("not enough args");
+				}
+
+				var old_env = l.Environment;
+				l.Environment = lexenv;
+
+				try {
+					Shelisp.Object rv = L.Qnil;
+					foreach (var form in (List)body) {
+						L.EvalIndent();
+						rv = form.Eval (l, lexenv);
+						L.EvalOutdent();
 					}
 
-					lexenv = new List (new List (argname_enumerator.Current, eval_args ? arg_enumerator.Current.Eval (l, env) : arg_enumerator.Current), lexenv);
+					return rv;
 				}
-			}
-
-			var old_env = l.Environment;
-			l.Environment = lexenv;
-
-			try {
-				Shelisp.Object rv = L.Qnil;
-				foreach (var form in (List)body) {
-					L.EvalIndent();
-					rv = form.Eval (l, lexenv);
-					L.EvalOutdent();
+				catch (Exception) {
+					Debug.Print ("at lisp {0}", body);
+					throw;
 				}
-
-				return rv;
-			}
-			catch (Exception) {
-				Debug.Print ("at lisp {0}", body);
-				throw;
+				finally {
+					l.Environment = old_env;
+				}
 			}
 			finally {
-				l.Environment = old_env;
+				l.eval_depth --;
 			}
 		}
 
@@ -428,6 +451,14 @@ namespace Shelisp {
 		}
 
 		[LispBuiltin]
+		public static Shelisp.Object Fcdr_safe (L l, Shelisp.Object cons)
+		{
+			if (!L.CONSP (cons))
+				return L.Qnil;
+			return L.CDR(cons);
+		}
+
+		[LispBuiltin]
 		public static Shelisp.Object Fcar (L l, Shelisp.Object cons)
 		{
 			if (!L.LISTP (cons))
@@ -489,12 +520,33 @@ namespace Shelisp {
 			if (!L.LISTP(alist))
 				throw new WrongTypeArgumentException ("listp", alist);
 
+			if (L.NILP(alist))
+				return L.Qnil;
+
 			foreach (var el in L.CONS(alist)) {
 				if (!L.LISTP(el))
 					continue;
 				var car = L.CAR(el);
-				// maybe inline Fequal here and directly call key.LispEqual (car)
-				if (!L.NILP(Object.Fequal (l, key, car)))
+				if (key.LispEqual (car))
+					return el;
+			}
+			return L.Qnil;
+		}
+
+		[LispBuiltin]
+		public static Shelisp.Object Frassoc (L l, Shelisp.Object val, Shelisp.Object alist)
+		{
+			if (!L.LISTP(alist))
+				throw new WrongTypeArgumentException ("listp", alist);
+
+			if (L.NILP(alist))
+				return L.Qnil;
+
+			foreach (var el in L.CONS(alist)) {
+				if (!L.LISTP(el))
+					continue;
+				var cdr = L.CDR(el);
+				if (val.LispEqual (cdr))
 					return el;
 			}
 			return L.Qnil;
@@ -666,14 +718,76 @@ namespace Shelisp {
 			return newcar;
 		}
 
-		[LispBuiltin (DocString = @"*Limit on depth in `eval', `apply' and `funcall' before error.
+		[LispBuiltin (DocString = @"Sort LIST, stably, comparing elements using PREDICATE.
+Returns the sorted list.  LIST is modified by side effects.
+PREDICATE is called with two elements of LIST, and should return non-nil
+if the first element should sort before the second.")]
+		public static Shelisp.Object Fsort (L l, Shelisp.Object list, Shelisp.Object predicate)
+		{
+			Shelisp.Object front, back;
+			Shelisp.Object tem;
+			int length;
 
-This limit serves to catch infinite recursions for you before they cause
-actual stack overflow in C, which would be fatal for Emacs.
-You can safely make it considerably larger than its default value,
-if that proves inconveniently small.  However, if you increase it too far,
-Emacs could overflow the real C stack, and crash.")]
-		public static int max_lisp_eval_depth = 600;
+			front = list;
+			length = ((List)list).Length;
+			if (length < 2)
+				return list;
+
+			length = length / 2 - 1;
+			tem = Fnthcdr (l, new Number(length), list);
+			back = Fcdr (l, tem);
+			Fsetcdr (l, tem, L.Qnil);
+
+			front = Fsort (l, front, predicate);
+			back = Fsort (l, back, predicate);
+
+			return merge (l, front, back, predicate);
+		}
+
+		private static Shelisp.Object merge (L l, Shelisp.Object org_l1, Shelisp.Object org_l2, Shelisp.Object pred)
+		{
+			Shelisp.Object value;
+			Shelisp.Object tail;
+			Shelisp.Object tem;
+			Shelisp.Object l1, l2;
+
+			l1 = org_l1;
+			l2 = org_l2;
+			tail = L.Qnil;
+			value = L.Qnil;
+
+			while (true) {
+				if (L.NILP (l1)) {
+					if (L.NILP (tail))
+						return l2;
+					Fsetcdr (l, tail, l2);
+					return value;
+				}
+				if (L.NILP (l2)) {
+					if (L.NILP (tail))
+						return l1;
+					Fsetcdr (l, tail, l1);
+					return value;
+				}
+				tem = new List (new Shelisp.Object[] { pred, Fcar (l, l2), Fcar (l, l1) }).Eval (l);
+				if (L.NILP (tem)) {
+					tem = l1;
+					l1 = Fcdr (l, l1);
+					org_l1 = l1;
+				}
+				else {
+					tem = l2;
+					l2 = Fcdr (l, l2);
+					org_l2 = l2;
+				}
+				if (L.NILP (tail))
+					value = tem;
+				else
+					Fsetcdr (l, tail, tem);
+				tail = tem;
+			}
+		}
+
 	}
 
 }
