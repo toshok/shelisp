@@ -15,9 +15,7 @@
 (assert-equal (capitalize "hello there") "Hello There" "two word capitalization")
 (assert-equal (capitalize "hello-there") "Hello-There" "hyphenated two word capitalization")
 (assert-equal (capitalize "hello.there") "Hello.There" "random character between two word capitalization")
-(ignore-tests "shelisp's version of the character capitalize is broken"
-  (assert-equal (capitalize ?a) ?A "capitalize also works on characters")
-)
+(assert-equal (capitalize ?a) ?A "capitalize also works on characters")
 
 ;; substrings
 

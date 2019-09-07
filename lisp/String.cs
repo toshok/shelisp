@@ -416,8 +416,8 @@ The argument object is not altered--the value is a copy.")]
 				return (Shelisp.String)sb.ToString();
 			}
 			else {
-				Console.WriteLine ("unimplemented non-string version of capitalize");
-				return obj;
+				char c = (char)Shelisp.Number.ToInt(obj);
+				return new Shelisp.Number((int)Char.ToUpper(c));
 			}
 		}
 
