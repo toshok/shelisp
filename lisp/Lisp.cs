@@ -191,7 +191,7 @@ namespace Shelisp {
 					if (lisp_name.StartsWith ("V"))
 						lisp_name = lisp_name.Substring (1);
 
-					Console.WriteLine ("found [LispBuiltin({0})] on field '{1}.{2}'", lisp_name, field.DeclaringType, field.Name);
+					Debug.Print ("found [LispBuiltin({0})] on field '{1}.{2}'", lisp_name, field.DeclaringType, field.Name);
 
 					string doc_string = builtin_attr.DocString ?? "";
 
