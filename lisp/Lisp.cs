@@ -1261,6 +1261,25 @@ definitions to shadow the loaded ones for use in file byte-compilation.")]
 			return form;
 		}
 
+		[LispBuiltin (MinArgs = 1, Unevalled = true, DocString = 
+@"Return the argument, without evaluating it.  `(quote x)' yields `x'.
+Warning: `quote' does not construct its return value, but just returns
+the value that was pre-constructed by the Lisp reader (see info node
+`(elisp)Printed Representation').
+This means that '(a . b) is not identical to (cons 'a 'b): the former
+does not cons.  Quoting should be reserved for constants that will
+never be modified by side-effects, unless you like self-modifying code.
+See the common pitfall in info node `(elisp)Rearrangement' for an example
+of unexpected results when a quoted object is modified.
+usage: (quote ARG) ")]
+		public static Shelisp.Object Fquote (L l, params Shelisp.Object[] args) {
+#if not_ported
+			if (!L.NILP (L.CDR (args)))
+				xsignal2 (Qwrong_number_of_arguments, Qquote, Flength (args));
+#endif
+			return args[0];
+		}
+
 		[LispBuiltin (DocString = "Return the argument unchanged")]
 		public static Shelisp.Object Fidentity (L l, Shelisp.Object arg)
 		{
