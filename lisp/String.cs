@@ -341,8 +341,28 @@ With one argument, just copy STRING without its properties.")]
 		[LispBuiltin]
 		public static Shelisp.Object Fpropertize(L l, Shelisp.Object str, params Shelisp.Object[] propvals)
 		{
-			Console.WriteLine ("propertize not implemented");
-			return str;
+			Shelisp.Object rv = L.Qnil, properties = L.Qnil;
+
+			/* Number of prop/vals must be even */
+			if ((propvals.Length & 1) == 1) {
+				throw new Exception("Wrong number of arguments"); // XXX a better exception type here?
+			}
+
+			/* First argument must be a string.  */
+			//CHECK_STRING (args[0]);
+			rv = Shelisp.String.Fcopy_sequence(l, str);
+
+			for (int i = 0; i < propvals.Length; i += 2) {
+				properties = Shelisp.List.Fcons(l, propvals[i], Shelisp.List.Fcons(l, propvals[i+1], properties));
+			}
+
+#if notyet
+			Shelisp.String.Fadd_text_properties(new Shelisp.Number(0),
+							    new Shelisp.Number(rv.Length),
+							    properties, rv);
+#endif
+
+			return rv;
 		}
 
 		[LispBuiltin (DocString = "Return a regexp string which matches exactly STRING and nothing else.")]

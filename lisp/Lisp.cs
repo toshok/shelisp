@@ -1082,7 +1082,7 @@ usage: (unwind-protect BODYFORM UNWINDFORMS...)")]
 		}
 
 		[LispBuiltin]
-		public Shelisp.Object Vload_path = L.string_array_to_list (new string[] {"/Users/toshok/src/emacs/trunk/lisp", "/Users/toshok/src/emacs/trunk/lisp/emacs-lisp" });
+		public Shelisp.Object Vload_path = L.string_array_to_list (new string[] {"/Users/toshok/src/shemacs/emacs/lisp", "/Users/toshok/src/shemacs/emacs/lisp/emacs-lisp" });
 
 		[LispBuiltin]
 		public static Shelisp.Object Feval_when_compile (L l, params Shelisp.Object[] forms)

@@ -8,7 +8,7 @@ namespace Shemacs.Editor {
 	public class Shemacs {
 		public static void Main (string[] args)
 		{
-			Environment.CurrentDirectory = "/Users/toshok/src/emacs/trunk/lisp";
+			Environment.CurrentDirectory = "/Users/toshok/src/shemacs/emacs/lisp";
 
 			L.RegisterGlobalBuiltins (typeof (Shemacs).Assembly);
 
