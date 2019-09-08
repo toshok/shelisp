@@ -1,4 +1,8 @@
 
+(require 'lisp-tests)
+
+(if verbose-tests
+  (message ";;;; SYMBOL TESTS"))
 
 (assert-null (boundp 'unused-symbol) "symbol has no value")
 (assert-equal (setq unused-symbol 5) 5 "setq returns the value")

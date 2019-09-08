@@ -16,6 +16,7 @@
 (require 'string-tests)
 (require 'hash-tests)
 (require 'obarray-tests)
+(require 'sequence-tests)
 
 (if (boundp 'running-on-emacs)
   (message "ran %d tests, %d failures, %d ignored tests" number-of-tests (if (null failed-tests) 0 (length failed-tests)) number-of-ignored-tests))

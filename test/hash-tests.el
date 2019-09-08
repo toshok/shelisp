@@ -8,7 +8,8 @@
 (assert-eql (sxhash '(1)) (sxhash 1) "(sxhash '(1)) == (sxhash 1)")
 (assert-eql (sxhash '(1 2 3)) (sxhash '(1 2 3)) "sxhash returns the same thing for different list objects that are equal")
 (assert-eql (sxhash '[1 2 3]) (sxhash '[1 2 3]) "sxhash returns the same thing for different vector objects that are equal")
-(assert-eql (sxhash '[1]) (+ 20 (sxhash 1)) "(sxhash '[1]) == (sxhash 1) + 20")
+(ignore-tests "our sxhash uses .net's GetHashCode"
+  (assert-eql (sxhash '[1]) (+ 20 (sxhash 1)) "(sxhash '[1]) == (sxhash 1) + 20"))
 (assert-eql (sxhash 'hi) (sxhash (symbol-name 'hi)) "sxhash returns the same thing for SYM and (symbol-name SYM)")
 
 (defun test-puthash-returns-same-value (value type)
