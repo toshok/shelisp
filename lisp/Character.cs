@@ -1,3 +1,5 @@
+using System.Text;
+
 using Shelisp;
 
 namespace Shelisp.Editor {
@@ -49,8 +51,11 @@ namespace Shelisp.Editor {
 		[LispBuiltin]
 		public static Shelisp.Object Fstring (L l, params Shelisp.Object[] args)
 		{
-			// XXX
-			return L.Qnil;
+			StringBuilder sb = new StringBuilder();
+			foreach (var o in args) {
+				sb.Append((char)Number.ToInt(o));
+			}
+			return new Shelisp.String(sb.ToString());
 		}
 
 		[LispBuiltin]
